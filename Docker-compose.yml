@@ -1,0 +1,49 @@
+version: '3'
+
+services:
+  mysql-master:
+    build:
+      context: Backend
+      dockerfile: Backend/Dockerfile
+      target: master
+
+  mysql-slave:
+    build:
+      context: Backend
+      dockerfile: Backend/Dockerfile
+      target: slave
+
+  ceph-mon:
+    image: ${CEPH_IMAGE}
+    ports:
+      - "7000:7000"
+    environment:
+      - CEPH_CONF=/etc/ceph.conf
+      - MON_ADDRESS=${MON_ADDRESS}
+
+  ceph-osd-1:
+    image: ${CEPH_IMAGE}
+    environment:
+      - CEPH_CONF=/etc/ceph.conf
+      - OSD_ID=1
+
+  ceph-osd-2:
+    image: ${CEPH_IMAGE}
+    environment:
+      - CEPH_CONF=/etc/ceph.conf
+      - OSD_ID=2
+
+  ceph-mgr:
+    image: ${CEPH_IMAGE}
+    ports:
+      - "8000:8000"
+    environment:
+      - CEPH_CONF=/etc/ceph.conf
+
+  ceph-rgw:
+    image: ${CEPH_IMAGE}
+    ports:
+      - "7480:7480"
+    environment:
+      - CEPH_CONF=/etc/ceph.conf
+        - RGW_NAME=rgw
