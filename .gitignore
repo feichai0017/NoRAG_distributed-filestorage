@@ -12,9 +12,7 @@ yarn.lock
 
 
 .idea
-*.iws
-*.iml
-*.ipr
+
 .vite
 
 ### VS Code ###
