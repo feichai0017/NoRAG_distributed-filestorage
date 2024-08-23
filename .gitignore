@@ -9,8 +9,6 @@ package-lock.json
 yarn.lock
 
 
-Backend/
-
 .idea
 
 .vite

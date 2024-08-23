@@ -1,0 +1,135 @@
+@media (max-width: 1300px) {}
+
+@media (max-width: 1120px) {}
+
+@media (max-width: 992px) {
+  .hero_area {
+    min-height: auto;
+  }
+
+  #navbarSupportedContent {
+    padding: 15px 0 25px 0;
+  }
+
+  .quote_btn-container {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .quote_btn-container a {
+    margin-right: 0;
+    margin-top: 10px;
+  }
+
+  .slider_section {
+    padding: 45px 0 90px 0;
+  }
+
+
+  .client_section .box {
+    margin: 15px;
+  }
+
+  .client_section .carousel_btn-box {
+    display: flex;
+    justify-content: center;
+    margin-top: 45px;
+  }
+
+  .client_section .carousel-control-prev,
+  .client_section .carousel-control-next {
+    position: unset;
+    margin: 0 2.5px;
+    width: 45px;
+    height: 45px;
+  }
+
+  .info_section .info_main_row>div {
+    margin-bottom: 25px;
+  }
+}
+
+@media (max-width: 768px) {
+  .slider_section .detail-box {
+    margin-bottom: 45px;
+    text-align: center;
+  }
+
+  .slider_section .detail-box .btn-box {
+    justify-content: center;
+  }
+
+  .about_section .detail-box {
+    margin-bottom: 45px;
+  }
+
+
+  .service_section .row .service_col_middle {
+    order: 2;
+  }
+
+  .service_section .service_col_middle .box {
+    margin-bottom: 45px;
+  }
+
+  .server_section {
+    background: none;
+    background-color: #020230;
+  }
+
+  .server_section .img-box {
+    margin-bottom: 25px;
+  }
+
+  .contact_section .form_container {
+    margin-right: 0;
+    margin-bottom: 45px;
+  }
+
+  .info_section .row>div {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    margin-bottom: 35px;
+  }
+
+  .info_section .info_links {
+    align-items: center;
+  }
+}
+
+@media (max-width: 576px) {
+
+
+  .client_section .box {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .client_section .box .detail-box {
+    padding: 85px 45px 45px 45px;
+
+  }
+
+  .client_section .box .img-box {
+    margin-right: 0;
+    margin-bottom: -65px;
+  }
+}
+
+@media (max-width: 480px) {}
+
+@media (max-width: 420px) {}
+
+@media (max-width: 376px) {
+  .slider_section .detail_box h1 {
+    font-size: 2.5rem;
+  }
+}
+
+@media (min-width: 1200px) {
+  .container {
+    max-width: 1170px;
+  }
+}
