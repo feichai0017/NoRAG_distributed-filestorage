@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"bytes"
 	"cloud_distributed_storage/common"
 	cfg "cloud_distributed_storage/config"
 	dblayer "cloud_distributed_storage/database"
@@ -19,26 +20,13 @@ import (
 	"os"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 )
 
 // UploadHandler: handle file upload
 func UploadHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "GET" {
-		//	return html
-		file, err := os.Open("/usr/local/Distributed_system/cloud_distributed_storage/Backend/static/view/upload.html")
-		if err != nil {
-			log.Printf("Failed to read file: %s, error: %s\n", "./static/view/upload.html", err.Error())
-			io.WriteString(w, "internal server error")
-			return
-		}
-		log.Printf("Successfully read file: %s\n", "./static/view/upload.html")
-		defer file.Close()
-
-		data, err := io.ReadAll(file)
-
-		io.WriteString(w, string(data))
-	} else if r.Method == "POST" {
+	if r.Method == "POST" {
 		//	receive file stream
 		file, head, err := r.FormFile("file")
 		if err != nil {
@@ -111,6 +99,7 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 				DestStoreType: common.StoreType(2),
 			}
 			pubData, _ := json.Marshal(data)
+			log.Printf("start to publish message to transcode: %s\n", pubData)
 			pubSuc := mq.Publish(cfg.TransExchangeName, cfg.TransS3RoutingKey, pubData)
 			if !pubSuc {
 				//	TODO: retry current message
@@ -154,15 +143,6 @@ func UploadSucHandler(w http.ResponseWriter, r *http.Request) {
 
 // GetFileMetaHandler: get meta info of file
 func GetFileMetaHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method == http.MethodGet {
-		data, err := ioutil.ReadFile("/usr/local/Distributed_system/cloud_distributed_storage/Backend/static/view/queryfile.html")
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		w.Write(data)
-		return
-	}
 	r.ParseForm()
 
 	filehash := r.Form["filehash"][0]
@@ -205,42 +185,104 @@ func FileQueryHandler(w http.ResponseWriter, r *http.Request) {
 func DownloadHandler(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 	fsha1 := query.Get("filehash")
+
 	// 获取文件元信息
-	fm := meta.GetFileMeta(fsha1)
-	if fm.Location == "" {
+	fm, err := meta.GetFileMetaDB(fsha1)
+	if err != nil {
+		log.Printf("Failed to get file meta: %v", err)
 		w.WriteHeader(http.StatusNotFound)
 		w.Write([]byte("File not found"))
 		return
 	}
-	// download file from s3
-	s3Client := s3.GetS3Client()
-	bucketBasics := s3.BucketBasics{S3Client: s3Client}
-	err := bucketBasics.DownloadFile(cfg.S3_BUCKET_NAME, fm.FileSha1, fm.FileName)
 
-	f, err := os.Open(fm.Location)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+	var reader io.ReadCloser
+	var fileSize int64
+
+	// 根据存储位置选择下载方式
+	switch {
+	case strings.HasPrefix(fm.Location, "ceph/"):
+		// 从Ceph下载
+		bucket := ceph.GetCephBucket("userfile")
+		cephPath := strings.TrimPrefix(fm.Location, "ceph/")
+		data, err := bucket.Get(cephPath)
+		if err != nil {
+			log.Printf("Failed to get file from Ceph: %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		reader = ioutil.NopCloser(bytes.NewReader(data))
+		fileSize = int64(len(data))
+
+	case strings.HasPrefix(fm.Location, "s3/"):
+		// 从S3下载
+		s3Client := s3.GetS3Client()
+		bucketBasics := s3.BucketBasics{S3Client: s3Client}
+		tempFile, err := ioutil.TempFile("", "s3-download-")
+		if err != nil {
+			log.Printf("Failed to create temp file: %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		defer os.Remove(tempFile.Name())
+		defer tempFile.Close()
+
+		err = bucketBasics.DownloadFile(cfg.S3_BUCKET_NAME, fm.FileSha1, tempFile.Name())
+		if err != nil {
+			log.Printf("Failed to download file from S3: %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		reader, err = os.Open(tempFile.Name())
+		if err != nil {
+			log.Printf("Failed to open temp file: %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		fileSize = fm.FileSize
+
+	default:
+		// 从本地文件系统下载
+		reader, err = os.Open(fm.Location)
+		if err != nil {
+			log.Printf("Failed to open file: %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		defer reader.Close()
+		fi, err := reader.(*os.File).Stat()
+		if err != nil {
+			log.Printf("Failed to get file info: %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		fileSize = fi.Size()
 	}
-	defer f.Close()
 
-	fi, err := f.Stat()
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("Failed to get file info"))
-		return
-	}
-
+	// 设置响应头
 	w.Header().Set("Content-Type", "application/octet-stream")
-	w.Header().Set("Content-Disposition", "attachment;filename=\""+fm.FileName+"\"")
-	w.Header().Set("Content-Length", strconv.FormatInt(fi.Size(), 10))
+	w.Header().Set("Content-Disposition", "attachment; filename=\""+fm.FileName+"\"")
+	w.Header().Set("Content-Length", strconv.FormatInt(fileSize, 10))
 
-	_, err = io.Copy(w, f)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+	// 使用缓冲写入响应
+	bufSize := 4 * 1024 * 1024 // 4MB buffer
+	buf := make([]byte, bufSize)
+	for {
+		n, err := reader.Read(buf)
+		if err != nil && err != io.EOF {
+			log.Printf("Error reading file: %v", err)
+			return
+		}
+		if n == 0 {
+			break
+		}
+		if _, err := w.Write(buf[:n]); err != nil {
+			log.Printf("Error writing to response: %v", err)
+			return
+		}
+		if f, ok := w.(http.Flusher); ok {
+			f.Flush()
+		}
 	}
-
 }
 
 // FileMetaUpdateHandler: update the filename of filemeta
@@ -277,10 +319,46 @@ func FileDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 	fileSha1 := query.Get("filehash")
 
-	fMeta := meta.GetFileMeta(fileSha1)
-	os.Remove(fMeta.Location)
+	fMeta, err := meta.GetFileMetaDB(fileSha1)
+	if err != nil {
+		log.Printf("Failed to get file meta: %v", err)
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
 
-	meta.RemoveFileMeta(fileSha1)
+	// 根据存储位置选择删除方式
+	switch {
+	case strings.HasPrefix(fMeta.Location, "ceph/"):
+		// 从Ceph删除
+		bucket := ceph.GetCephBucket("userfile")
+		err = bucket.Del(fMeta.Location)
+
+	case strings.HasPrefix(fMeta.Location, "s3/"):
+		// 从S3删除
+		s3Client := s3.GetS3Client()
+		bucketBasics := s3.BucketBasics{S3Client: s3Client}
+		// 将fileSha1转换为[]string
+		fileSha1List := []string{fileSha1}
+		err = bucketBasics.DeleteObjects(cfg.S3_BUCKET_NAME, fileSha1List)
+
+	default:
+		// 从本地文件系统删除
+		err = os.Remove(fMeta.Location)
+	}
+
+	if err != nil {
+		log.Printf("Failed to delete file: %v", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	// 从数据库中删除文件元信息
+	err = meta.RemoveFileMeta(fileSha1)
+	if err != nil {
+		log.Printf("Failed to remove file meta from DB: %v", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 
 	w.WriteHeader(http.StatusOK)
 }

@@ -80,8 +80,9 @@ func GetLastFileMetas(count int) []FileMeta {
 }
 
 // RemoveFileMeta: delete filemeta by filesha1
-func RemoveFileMeta(fileSha1 string) {
+func RemoveFileMeta(fileSha1 string) error {
 	mu.Lock()
 	defer mu.Unlock()
 	delete(fileMetas, fileSha1)
+	return nil
 }

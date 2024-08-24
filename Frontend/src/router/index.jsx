@@ -14,9 +14,9 @@ const router = createBrowserRouter([
     {
         path: '/',
         element: (
-            // <AuthRoute>
+            <AuthRoute>
                 <Layout/>
-            // </AuthRoute>
+            </AuthRoute>
         ),
         children : [
             {
@@ -33,17 +33,13 @@ const router = createBrowserRouter([
                 element: <QueryFile/>
             },
             {
-                path:'queryfile',
-                element: <QueryFile/>
-            },
-            {
                 path:'userfiles',
                 element: <UserFiles/>
             }
         ]
     },
     {
-        path: '/login',
+        path: 'login',
         element: <Login/>,
         index: true
     },

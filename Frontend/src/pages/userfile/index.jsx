@@ -1,3 +1,4 @@
+import './index.css'
 import React, { useState } from 'react';
 
 const UserFiles = () => {
@@ -19,7 +20,7 @@ const UserFiles = () => {
 
         const params = new URLSearchParams({ username, limit });
 
-        fetch('/file/meta/query', {
+        fetch('/api/meta/query', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
@@ -34,7 +35,8 @@ const UserFiles = () => {
     };
 
     return (
-        <div className="container">
+        <div className="file-display">
+            <div className="user-files">
             <h1>User Uploaded Files</h1>
             <form id="queryForm" onSubmit={handleFormSubmit}>
                 <label htmlFor="username">Username:</label>
@@ -99,6 +101,7 @@ const UserFiles = () => {
                 ))}
                 </tbody>
             </table>
+        </div>
         </div>
     );
 };

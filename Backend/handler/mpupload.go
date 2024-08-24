@@ -3,6 +3,7 @@ package handler
 import (
 	rPool "cloud_distributed_storage/cache/redis"
 	dblayer "cloud_distributed_storage/database"
+	"cloud_distributed_storage/meta"
 	"cloud_distributed_storage/util"
 	"crypto/sha1"
 	"encoding/hex"
@@ -187,15 +188,23 @@ func CompleteUploadHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// upload to database
-	fsiz, err := strconv.Atoi(filesize)
-	if err != nil {
-		w.Write(util.NewRespMsg(-1, "params invalid", nil).JSONBytes())
-		return
+	fileSizeInt, _ := strconv.ParseInt(filesize, 10, 64)
+	fileMeta := meta.FileMeta{
+		FileSha1: filehash,
+		FileName: filename,
+		FileSize: fileSizeInt,
+		Location: "/data/" + filehash,
+		UploadAt: time.Now().Format("2006-01-02 15:04:05"),
 	}
-	dblayer.OnFileUploadFinished(filehash, filename, int64(fsiz), "")
-	dblayer.OnUserFileUploadFinished(username, filehash, filename, int64(fsiz))
 
-	w.Write(util.NewRespMsg(0, "OK", nil).JSONBytes())
+	_ = meta.UpdateFileMetaDB(fileMeta)
+	suc := dblayer.OnUserFileUploadFinished(username, filehash, filename, fileSizeInt)
+
+	if suc {
+		w.Write(util.NewRespMsg(0, "OK", nil).JSONBytes())
+	} else {
+		w.Write(util.NewRespMsg(-1, "Upload failed", nil).JSONBytes())
+	}
 }
 
 // CancelUploadHandler:取消上传
@@ -240,4 +249,59 @@ func MultipartUploadStatusHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(util.NewRespMsg(0, "OK", ret).JSONBytes())
 }
 
-//TODO: 断点下载
+// TODO: 断点下载
+func MultiDownloadHandler(w http.ResponseWriter, r *http.Request) {
+	//r.ParseForm()
+	//fsha1 := r.Form.Get("filehash")
+	//username := r.Form.Get("username")
+	//
+	//fm, err := meta.GetFileMetaDB(fsha1)
+	//if err != nil {
+	//	w.WriteHeader(http.StatusInternalServerError)
+	//	return
+	//}
+	//
+	//f, err := os.Open(fm.Location)
+	//if err != nil {
+	//	w.WriteHeader(http.StatusInternalServerError)
+	//	return
+	//}
+	//defer f.Close()
+	//
+	//data, err := ioutil.ReadAll(f)
+	//if err != nil {
+	//	w.WriteHeader(http.StatusInternalServerError)
+	//	return
+	//}
+	//
+	//w.Header().Set("Content-Type", "application/octet-stream")
+	//w.Header().Set("Content-Disposition", "attachment; filename="+fm.FileName)
+	//w.Header().Set("Content-Length", strconv.FormatInt(fm.FileSize, 10))
+	//w.Header().Set("Accept-Ranges", "bytes")
+	//
+	//rangeHeader := r.Header.Get("Range")
+	//if rangeHeader != "" {
+	//	// 处理断点续传
+	//	var start, end int64
+	//	fmt.Sscanf(rangeHeader, "bytes=%d-%d", &start, &end)
+	//	if end == 0 {
+	//		end = fm.FileSize - 1
+	//	}
+	//	if start > end || start < 0 || end >= fm.FileSize {
+	//		w.WriteHeader(http.StatusRequestedRangeNotSatisfiable)
+	//		return
+	//	}
+	//	w.Header().Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", start, end, fm.FileSize))
+	//	w.Header().Set("Content-Length", strconv.FormatInt(end-start+1, 10))
+	//	w.WriteHeader(http.StatusPartialContent)
+	//	w.Write(data[start : end+1])
+	//} else {
+	//	// 完整下载
+	//	w.Write(data)
+	//}
+
+	// 更新下载次数等信息
+	//r.ParseForm()
+	//username := r.Form.Get("username")
+	//dblayer.UpdateUserFileDownloadCount(username, fsha1)
+}

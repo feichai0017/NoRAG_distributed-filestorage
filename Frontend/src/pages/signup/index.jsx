@@ -13,6 +13,9 @@ import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import Typography from '@mui/material/Typography';
 import Container from '@mui/material/Container';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
+import {useState} from "react";
+import {signUpAPI} from "@/api/user.jsx";
+import {useNavigate} from "react-router-dom";
 
 function Copyright(props) {
     return (
@@ -32,13 +35,43 @@ function Copyright(props) {
 const defaultTheme = createTheme();
 
 export default function SignUp() {
-    const handleSubmit = (event) => {
-        event.preventDefault();
-        const data = new FormData(event.currentTarget);
-        console.log({
-            email: data.get('email'),
-            password: data.get('password'),
+    const [formData, setFormData] = useState({
+        firstName: '',
+        lastName: '',
+        email: '',
+        password: '',
+        allowExtraEmails: false,
+    });
+
+    const navigate = useNavigate();
+
+    const handleInputChange = (e) => {
+        const { name, value} = e.target;
+        setFormData({
+            ...formData,
+            [name] : value,
         });
+    };
+
+    const handleSubmit = async (event) => {
+        event.preventDefault();
+        const username = `${formData.firstName}${formData.lastName}`;
+        const requestData = {
+            username: username,
+            password: formData.password,
+            email: formData.email
+        };
+        console.log("Sending data:", requestData);
+        try {
+            const res = await signUpAPI(requestData);
+            if (res.code === 0) {
+                navigate('/login');
+            } else {
+                console.log(res);
+            }
+        } catch (error) {
+            console.error("Signup failed:", error);
+        }
     };
 
     return (
@@ -70,6 +103,8 @@ export default function SignUp() {
                                     id="firstName"
                                     label="First Name"
                                     autoFocus
+                                    value={formData.firstName}
+                                    onChange={handleInputChange}
                                 />
                             </Grid>
                             <Grid item xs={12} sm={6}>
@@ -80,6 +115,8 @@ export default function SignUp() {
                                     label="Last Name"
                                     name="lastName"
                                     autoComplete="family-name"
+                                    value={formData.lastName}
+                                    onChange={handleInputChange}
                                 />
                             </Grid>
                             <Grid item xs={12}>
@@ -90,6 +127,8 @@ export default function SignUp() {
                                     label="Email Address"
                                     name="email"
                                     autoComplete="email"
+                                    value={formData.email}
+                                    onChange={handleInputChange}
                                 />
                             </Grid>
                             <Grid item xs={12}>
@@ -101,11 +140,18 @@ export default function SignUp() {
                                     type="password"
                                     id="password"
                                     autoComplete="new-password"
+                                    value={formData.password}
+                                    onChange={handleInputChange}
                                 />
                             </Grid>
                             <Grid item xs={12}>
                                 <FormControlLabel
-                                    control={<Checkbox value="allowExtraEmails" color="primary" />}
+                                    control={<Checkbox value="allowExtraEmails"
+                                                       color="primary"
+                                                       name="allowExtraEmails"
+                                                       checked={formData.allowExtraEmails}
+                                                       onChange={handleInputChange}
+                                    />}
                                     label="I want to receive inspiration, marketing promotions and updates via email."
                                 />
                             </Grid>

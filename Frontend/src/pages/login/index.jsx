@@ -1,5 +1,5 @@
 // eslint-disable-next-line no-unused-vars
-import React from 'react';
+import React, {useState} from 'react';
 import Avatar from '@mui/material/Avatar';
 import Button from '@mui/material/Button';
 import CssBaseline from '@mui/material/CssBaseline';
@@ -14,6 +14,9 @@ import Typography from '@mui/material/Typography';
 import Container from '@mui/material/Container';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
 import {loginAPI} from "@/api/user.jsx";
+import {useDispatch} from "react-redux";
+import {useNavigate} from 'react-router-dom';
+import {fetchLogin} from "@/store/modules/user.jsx";
 
 function Copyright(props) {
     return (
@@ -33,14 +36,30 @@ function Copyright(props) {
 const defaultTheme = createTheme();
 
 export default function Login() {
-    const handleSubmit = (event) => {
-        event.preventDefault();
-        const data = new FormData(event.currentTarget);
-        loginAPI(data)
-        console.log({
-            email: data.get('email'),
-            password: data.get('password'),
+    const [formData, setFormData] = useState({
+        username: '',
+        password: '',
+    });
+    const dispatch = useDispatch();
+    const navigate = useNavigate();
+
+    const handleInputChange = (e) => {
+        const { name, value } = e.target;
+        setFormData({
+            ...formData,
+            [name]: value,
         });
+    };
+
+    const handleSubmit = async (event) => {
+        event.preventDefault();
+        try {
+            await dispatch(fetchLogin(formData));
+            navigate('/');
+            console.log('login success');
+        } catch (error) {
+            console.error('Error:', error);
+        }
     };
 
     return (
@@ -66,11 +85,13 @@ export default function Login() {
                             margin="normal"
                             required
                             fullWidth
-                            id="email"
-                            label="Email Address"
-                            name="email"
-                            autoComplete="email"
+                            id="username"
+                            label="Username"
+                            name="username"
+                            autoComplete="username"
                             autoFocus
+                            value={formData.username}
+                            onChange={handleInputChange}
                         />
                         <TextField
                             margin="normal"
@@ -81,6 +102,8 @@ export default function Login() {
                             type="password"
                             id="password"
                             autoComplete="current-password"
+                            value={formData.password}
+                            onChange={handleInputChange}
                         />
                         <FormControlLabel
                             control={<Checkbox value="remember" color="primary" />}

@@ -1,3 +1,5 @@
+
+import './index.css'
 import React, { useState } from 'react';
 
 const QueryFile = () => {
@@ -29,7 +31,8 @@ const QueryFile = () => {
     };
 
     return (
-        <div className="container">
+        <div className="searching-file">
+            <div className="file-search">
             <h1>File Search</h1>
             <form onSubmit={handleFormSubmit}>
                 <div className="input-box">
@@ -58,6 +61,7 @@ const QueryFile = () => {
                     </ul>
                 </div>
             </form>
+        </div>
         </div>
     );
 };
