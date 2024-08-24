@@ -2,16 +2,19 @@ package config
 
 import (
 	"github.com/joho/godotenv"
+	"log"
 	"os"
 )
 
-// 加载 .env 文件
-err := godotenv.Load("cloud_distributed_storage/.env")
-if err != nil {
-log.Fatal("Error loading .env file")
+func init() {
+	// Load .env file
+	err := godotenv.Load("cloud_distributed_storage/.env")
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
 }
 
-const (
+var (
 	// S3_BUCKET_NAME: returns the AWS S3 Bucket Name from environment variables
 	S3_BUCKET_NAME = os.Getenv("S3_BUCKET_NAME")
 
