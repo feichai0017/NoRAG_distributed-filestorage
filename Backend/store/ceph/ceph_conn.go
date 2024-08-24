@@ -3,9 +3,17 @@ package ceph
 import (
 	"gopkg.in/amz.v1/aws"
 	"gopkg.in/amz.v1/s3"
+	"github.com/joho/godotenv"
+	"os"
 )
 
 var cephConn *s3.S3
+
+// 加载 .env 文件
+err := godotenv.Load("cloud_distributed_storage/.env")
+if err != nil {
+	log.Fatal("Error loading .env file")
+}
 
 // GetCephConn 获取ceph连接
 func GetCephConn() *s3.S3 {
@@ -14,8 +22,8 @@ func GetCephConn() *s3.S3 {
 	}
 
 	auth := aws.Auth{
-		AccessKey: "XPEJZ2P808Y9UMU29GDO",
-		SecretKey: "52Ybt4XFLekFOWXNfdgdXqUMNowtttupkX64IY42",
+		AccessKey: os.Getenv("CEPH_ACCESS_KEY"),
+		SecretKey: os.Getenv("CEPH_SECRET_KEY"),
 	}
 
 	curRegion := aws.Region{

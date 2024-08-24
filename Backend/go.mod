@@ -11,6 +11,7 @@ require (
 	github.com/aws/smithy-go v1.20.4
 	github.com/garyburd/redigo v1.6.4
 	github.com/go-sql-driver/mysql v1.8.1
+	github.com/joho/godotenv v1.5.1
 	github.com/rs/cors v1.11.0
 	github.com/streadway/amqp v1.1.0
 	github.com/stretchr/testify v1.3.0
