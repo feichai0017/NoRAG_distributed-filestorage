@@ -1,18 +1,33 @@
 package handler
 
-import "net/http"
+import (
+	"context"
+	"net/http"
+	"strings"
+)
 
-// TODO: Implement a function that checks if the token is valid
+// HTTPInterceptor 拦截器
 func HTTPInterceptor(h http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
-			//r.ParseForm()
-			//username := r.Form.Get("username")
-			//token := r.Form.Get("token")
-			//
-			//if len(username) < 3 || !IsTokenValid(token) {
-			//	http.Redirect(w, r, "/user/login", http.StatusOK)
-			//}
+			authHeader := r.Header.Get("Authorization")
+			if authHeader == "" {
+				http.Error(w, "No authorization token provided", http.StatusUnauthorized)
+				return
+			}
+
+			// 解析 Bearer token
+			token := strings.TrimPrefix(authHeader, "Bearer ")
+
+			username, err := ValidateTokenAndGetUsername(token)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusUnauthorized)
+				return
+			}
+
+			// 将 username 添加到请求的上下文中
+			ctx := context.WithValue(r.Context(), "username", username)
+			r = r.WithContext(ctx)
 			h(w, r)
 
 		})

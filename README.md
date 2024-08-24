@@ -25,6 +25,8 @@ This project is a cloud-based distributed file system designed for scalability, 
     - **Kubernetes:** Manages containerized applications in a clustered environment, ensuring high availability, scalability, and fault tolerance.
 
 ## System Architecture
+![](/usr/local/Distributed_system/cloud_distributed_storage/microservice_interact_archi.png)
+
 
 The system is designed with a microservices architecture, where each component is loosely coupled, enabling independent scaling and development. The architecture leverages containerization and orchestration to manage resources efficiently and ensure seamless integration between services.
 

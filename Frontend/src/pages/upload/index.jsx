@@ -1,3 +1,5 @@
+
+import './index.css'
 import React, { useState } from 'react';
 
 const Upload = () => {
@@ -15,7 +17,7 @@ const Upload = () => {
     };
 
     return (
-        <div className="container">
+        <div className="upload-file">
             <div className="card">
                 <h3>Upload Files</h3>
                 <div className="drop_box">

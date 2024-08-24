@@ -33,7 +33,11 @@ const {setToken,setUserInfo,clearUserInfo} = userStore.actions
 const fetchLogin = (loginForm) => {
     return async (dispatch) => {
         const res = await loginAPI(loginForm);
-        dispatch(setToken(res.data.token));
+        if (res && res.token) {
+            dispatch(setToken(res.token));
+        } else {
+            throw new Error('Login failed: No token received');
+        }
     }
 }
 

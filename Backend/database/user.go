@@ -6,24 +6,32 @@ import (
 )
 
 // UserSignup: for user signup
-func UserSignup(username string, password string) bool {
-	stmt, err := mydb.DBConn().Prepare("insert ignore into tbl_user(`user_name`,`user_pwd`)" +
-		"values(?,?)")
+func UserSignup(username string, password string, email string) bool {
+	fmt.Printf("Attempting to sign up user: %s, email: %s\n", username, email)
+	stmt, err := mydb.DBConn().Prepare("INSERT INTO tbl_user(`user_name`, `user_pwd`, `email`, `status`) VALUES(?, ?, ?, 0)")
 	if err != nil {
 		fmt.Println("failed to insert, err:" + err.Error())
 		return false
 	}
+
 	defer stmt.Close()
 
-	ret, err := stmt.Exec(username, password)
+	ret, err := stmt.Exec(username, password, email)
 	if err != nil {
 		fmt.Println("failed to insert, err:" + err.Error())
 		return false
 	}
-	if rf, err := ret.RowsAffected(); nil == err && rf > 0 {
-		return true
+	fmt.Println("SQL statement executed successfully")
+
+	if rf, err := ret.RowsAffected(); err != nil {
+		fmt.Println("Failed to get rows affected:", err)
+		return false
+	} else if rf <= 0 {
+		fmt.Printf("User:%s already exists\n", username)
+		return false
 	}
-	return false
+	fmt.Printf("insert success, username: %s\n", username)
+	return true
 }
 
 // UserSignIn: for user login
@@ -70,6 +78,24 @@ func UpdateToken(username string, token string) bool {
 		return false
 	}
 	return true
+}
+
+func QueryUserByToken(token string) string {
+	stmt, err := mydb.DBConn().Prepare(
+		"select user_name from tbl_user_token where user_token = ? limit 1")
+	if err != nil {
+		fmt.Println(err.Error())
+		return "false"
+	}
+	defer stmt.Close()
+
+	var username string
+	err = stmt.QueryRow(token).Scan(&username)
+	if err != nil {
+		fmt.Println(err.Error())
+		return "false"
+	}
+	return username
 }
 
 type User struct {

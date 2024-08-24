@@ -29,23 +29,23 @@ export const mainListItems = (
             </ListItemIcon>
             <ListItemText primary="Dashboard" />
         </ListItemButton>
-        <ListItemButton component={NavLink} to="/income" sx={activeStyle}>
+        <ListItemButton component={NavLink} to="/upload" sx={activeStyle}>
             <ListItemIcon>
                 <AttachMoneyIcon/>
             </ListItemIcon>
-            <ListItemText primary="Income" />
+            <ListItemText primary="Upload" />
         </ListItemButton>
-        <ListItemButton component={NavLink} to="/payment" sx={activeStyle}>
+        <ListItemButton component={NavLink} to="/queryfile" sx={activeStyle}>
             <ListItemIcon>
                 <PaymentIcon />
             </ListItemIcon>
-            <ListItemText primary="Payments" />
+            <ListItemText primary="QueryFile" />
         </ListItemButton>
-        <ListItemButton component={NavLink} to="/report" sx={activeStyle}>
+        <ListItemButton component={NavLink} to="/userfiles" sx={activeStyle}>
             <ListItemIcon>
                 <BarChartIcon />
             </ListItemIcon>
-            <ListItemText primary="Reports" />
+            <ListItemText primary="UserFiles" />
         </ListItemButton>
     </React.Fragment>
 );
