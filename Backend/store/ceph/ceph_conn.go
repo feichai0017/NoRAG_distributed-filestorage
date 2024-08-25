@@ -1,6 +1,7 @@
 package ceph
 
 import (
+	"fmt"
 	"github.com/joho/godotenv"
 	"gopkg.in/amz.v1/aws"
 	"gopkg.in/amz.v1/s3"
@@ -16,9 +17,10 @@ func GetCephConn() *s3.S3 {
 		return cephConn
 	}
 	// 加载 .env 文件
-	err := godotenv.Load("cloud_distributed_storage/.env")
+	err := godotenv.Load("/usr/local/Distributed_system/cloud_distributed_storage/Backend/.env")
 	if err != nil {
 		log.Fatal("Error loading .env file")
+		fmt.Println(err.Error())
 	}
 
 	auth := aws.Auth{

@@ -4,6 +4,7 @@ import (
 	mydb "cloud_distributed_storage/database/mysql"
 	"database/sql"
 	"fmt"
+	"log"
 )
 
 // OnFileUploadFinished: file uploaded to database
@@ -41,6 +42,7 @@ type TableFile struct {
 
 // GetFileMeta: get filemeta by filehash
 func GetFileMeta(filehash string) (*TableFile, error) {
+	log.Printf("start to query file meta by filehash:%s\n", filehash)
 	stmt, err := mydb.DBConn().Prepare(
 		"select file_sha1,file_addr,file_name,file_size from tbl_file where file_sha1=? and status=1",
 	)
@@ -56,6 +58,7 @@ func GetFileMeta(filehash string) (*TableFile, error) {
 		fmt.Println(err.Error())
 		return nil, err
 	}
+	log.Printf("file meta:%s\n", tfile.FileHash)
 	return &tfile, nil
 }
 

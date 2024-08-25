@@ -14,13 +14,13 @@ const (
 	pwd_salt = "*#890"
 )
 
-type Request struct {
+type UserRequest struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
 	Email    string `json:"email"`
 }
 
-type Response struct {
+type UserResponse struct {
 	Code  int    `json:"code"`
 	Msg   string `json:"msg"`
 	Token string `json:"token,omitempty"`
@@ -30,7 +30,7 @@ type Response struct {
 func SignupHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("SignupHandler called")
 	if r.Method == http.MethodPost {
-		var req Request
+		var req UserRequest
 		err := json.NewDecoder(r.Body).Decode(&req)
 		if err != nil {
 			fmt.Println("Error decoding request:", err)
@@ -49,7 +49,7 @@ func SignupHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		enc_password := util.Sha1([]byte(password + pwd_salt))
 		suc := dblayer.UserSignup(username, enc_password, email)
-		resp := Response{}
+		resp := UserResponse{}
 		if suc {
 			resp.Code = 0
 			resp.Msg = "SUCCESS"
@@ -68,7 +68,7 @@ func SignupHandler(w http.ResponseWriter, r *http.Request) {
 func SignInHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPost {
 
-		var req Request
+		var req UserRequest
 		err := json.NewDecoder(r.Body).Decode(&req)
 		if err != nil {
 			http.Error(w, "Invalid request payload", http.StatusBadRequest)
@@ -82,7 +82,7 @@ func SignInHandler(w http.ResponseWriter, r *http.Request) {
 		encPassword := util.Sha1([]byte(password + pwd_salt))
 
 		pwdChecked := dblayer.UserSignIn(username, encPassword)
-		resp := Response{}
+		resp := UserResponse{}
 		if !pwdChecked {
 			resp.Code = -1
 			resp.Msg = "FAILED"

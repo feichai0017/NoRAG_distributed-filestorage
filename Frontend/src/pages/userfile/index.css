@@ -27,7 +27,7 @@ th {
     background-color: #f2f2f2;
 }
 
-.download-btn {
+.download-btn, .delete-btn {
     background: #4070f4;
     color: white;
     padding: 10px 20px;
@@ -35,10 +35,11 @@ th {
     text-decoration: none;
     display: inline-block;
     border-radius: 5px;
+    transition: background-color 0.3s ease; /* 添加过渡效果 */
 }
 
-.download-btn:hover {
-    background-color: #45a049;
+.download-btn:hover, .delete-btn:hover {
+    background-color: darkslateblue;
 }
 
 .file-display {

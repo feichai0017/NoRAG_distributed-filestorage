@@ -1,107 +1,118 @@
 import './index.css'
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import {deleteAPI, downloadAPI, queryAllAPI} from "@/api/files.jsx";
 
 const UserFiles = () => {
-    const [username, setUsername] = useState('');
     const [limit, setLimit] = useState(10);
     const [files, setFiles] = useState([]);
 
     const handleInputChange = (e) => {
-        const { name, value } = e.target;
-        if (name === 'username') {
-            setUsername(value);
-        } else if (name === 'limit') {
-            setLimit(value);
-        }
+        setLimit(e.target.value);
     };
+
+    const fetchFiles = async () => {
+        try {
+            const limitInt = parseInt(limit, 10);
+            const data = await queryAllAPI({
+                limit: limitInt,
+            });
+            if (Array.isArray(data)) {
+                setFiles(data);
+            } else {
+                console.error('Received data is not an array:', data);
+                setFiles([]); // 设置为空数组
+            }
+        } catch (error) {
+            console.error('Error fetching files:', error);
+            setFiles([]); // 出错时设置为空数组
+        }
+
+    };
+
+    useEffect(() => {
+        fetchFiles();
+    }, [limit]); // 组件加载时获取文件列表
 
     const handleFormSubmit = (e) => {
         e.preventDefault();
-
-        const params = new URLSearchParams({ username, limit });
-
-        fetch('/api/meta/query', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: params,
-        })
-            .then((response) => response.json())
-            .then((data) => {
-                setFiles(data);
-            })
-            .catch((error) => console.error('Error:', error));
+        fetchFiles();
     };
 
     return (
         <div className="file-display">
             <div className="user-files">
-            <h1>User Uploaded Files</h1>
-            <form id="queryForm" onSubmit={handleFormSubmit}>
-                <label htmlFor="username">Username:</label>
-                <input
-                    type="text"
-                    id="username"
-                    name="username"
-                    value={username}
-                    onChange={handleInputChange}
-                    required
-                />
-                <label htmlFor="limit">Number of Files:</label>
-                <input
-                    type="number"
-                    id="limit"
-                    name="limit"
-                    min="1"
-                    max="100"
-                    value={limit}
-                    onChange={handleInputChange}
-                    required
-                />
-                <button type="submit">Search</button>
-            </form>
-
-            <h2>Files:</h2>
-            <table>
-                <thead>
-                <tr>
-                    <th>File Name</th>
-                    <th>File Hash</th>
-                    <th>File Size (Bytes)</th>
-                    <th>Upload Time</th>
-                    <th>Action</th>
-                    <th>Delete</th>
-                </tr>
-                </thead>
-                <tbody id="fileList">
-                {files.map((fileMeta, index) => (
-                    <tr key={index}>
-                        <td>{fileMeta.FileName}</td>
-                        <td>{fileMeta.FileHash}</td>
-                        <td>{fileMeta.FileSize}</td>
-                        <td>{fileMeta.UploadAt}</td>
-                        <td>
-                            <a
-                                href={`/file/download?filehash=${fileMeta.FileHash}`}
-                                className="download-btn"
-                            >
-                                Download
-                            </a>
-                        </td>
-                        <td>
-                            <a
-                                href={`/file/delete?filehash=${fileMeta.FileHash}`}
-                                className="download-btn"
-                            >
-                                Delete
-                            </a>
-                        </td>
+                <h1>User Uploaded Files</h1>
+                <form id="queryForm" onSubmit={handleFormSubmit}>
+                    <label htmlFor="limit">Number of Files:</label>
+                    <input
+                        type="number"
+                        id="limit"
+                        name="limit"
+                        min="1"
+                        max="100"
+                        value={limit}
+                        onChange={handleInputChange}
+                        required
+                    />
+                </form>
+                <h2>Files:</h2>
+                <table>
+                    <thead>
+                    <tr>
+                        <th>File Name</th>
+                        <th>File Hash</th>
+                        <th>File Size (Bytes)</th>
+                        <th>Upload Time</th>
+                        <th>Action</th>
+                        <th>Delete</th>
                     </tr>
-                ))}
-                </tbody>
-            </table>
-        </div>
+                    </thead>
+                    <tbody id="fileList">
+                    {files.map((fileMeta, index) => (
+                        <tr key={index}>
+                            <td>{fileMeta.FileName}</td>
+                            <td>{fileMeta.FileHash}</td>
+                            <td>{fileMeta.FileSize}</td>
+                            <td>{fileMeta.UploadAt}</td>
+                            <td>
+                                <button
+                                    onClick={async () => {
+                                        try {
+                                            const response = await downloadAPI({filehash: fileMeta.FileHash});
+                                            // 处理下载响应
+                                            console.log('Download response:', response);
+                                        } catch (error) {
+                                            console.error('Error downloading file:', error);
+                                        }
+                                    }}
+                                    className="download-btn"
+                                >
+                                    Download
+                                </button>
+                            </td>
+                            <td>
+                                <button
+                                    onClick={async () => {
+                                        try {
+                                            const response = await deleteAPI({filehash: fileMeta.FileHash});
+                                            // 处理删除响应
+                                            console.log('Delete response:', response);
+                                            // 从文件列表中移除已删除的文件
+                                            setFiles(files.filter(file => file.FileHash !== fileMeta.FileHash));
+                                        } catch (error) {
+                                            console.error('Error deleting file:', error);
+                                        }
+                                    }}
+                                    className="delete-btn"
+                                >
+                                    Delete
+                                </button>
+                            </td>
+                        </tr>
+                    ))}
+                    </tbody>
+                </table>
+            </div>
         </div>
     );
 };

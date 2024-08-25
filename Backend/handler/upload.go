@@ -24,6 +24,12 @@ import (
 	"time"
 )
 
+// FileRequest 定义请求的结构
+type FileRequest struct {
+	FileHash string `json:"filehash"`
+	Limit    int    `json:"limit"`
+}
+
 // UploadHandler: handle file upload
 func UploadHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "POST" {
@@ -143,11 +149,20 @@ func UploadSucHandler(w http.ResponseWriter, r *http.Request) {
 
 // GetFileMetaHandler: get meta info of file
 func GetFileMetaHandler(w http.ResponseWriter, r *http.Request) {
-	r.ParseForm()
+	// 检查请求方法
+	if r.Method != http.MethodPost {
+		http.Error(w, `{"error": "Method not allowed"}`, http.StatusMethodNotAllowed)
+		return
+	}
 
-	filehash := r.Form["filehash"][0]
+	// 解析 JSON 请求
+	var req FileRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, `{"error": "Invalid JSON payload"}`, http.StatusBadRequest)
+		return
+	}
 	//fMeta := meta.GetFileMeta(filehash)
-	fMeta, err := meta.GetFileMetaDB(filehash)
+	fMeta, err := meta.GetFileMetaDB(req.FileHash)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -162,17 +177,40 @@ func GetFileMetaHandler(w http.ResponseWriter, r *http.Request) {
 
 // FileQueryHandler: get meta info of file
 func FileQueryHandler(w http.ResponseWriter, r *http.Request) {
-	r.ParseForm()
+	// 检查请求方法
+	if r.Method != http.MethodPost {
+		http.Error(w, `{"error": "Method not allowed"}`, http.StatusMethodNotAllowed)
+		return
+	}
 
-	limitCnt, _ := strconv.Atoi(r.Form.Get("limit"))
-	username := r.Form.Get("username")
+	// 解析 JSON 请求
+	var req FileRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, `{"error": "Invalid JSON payload"}`, http.StatusBadRequest)
+		return
+	}
+
+	// 验证 limit 值
+	if req.Limit <= 0 {
+		http.Error(w, `{"error": "Invalid limit value"}`, http.StatusBadRequest)
+		return
+	}
+
+	// 从上下文中获取用户名
+	username, ok := r.Context().Value("username").(string)
+	if !ok {
+		http.Error(w, `{"error": "User not authenticated"}`, http.StatusUnauthorized)
+		return
+	}
 	//fileMetas := meta.GetLastFileMetas(limitCnt)
-	fileMetas, err := dblayer.QueryUserFileMetas(username, limitCnt)
+	fileMetas, err := dblayer.QueryUserFileMetas(username, req.Limit)
 	if err != nil {
+		log.Printf("Error querying user file metas: %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
 	}
 	data, err := json.Marshal(fileMetas)
 	if err != nil {
+		log.Printf("Error marshaling response: %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -181,7 +219,6 @@ func FileQueryHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // DownloadHandler: download the file
-// TODO: download file from ceph and fix the bug
 func DownloadHandler(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 	fsha1 := query.Get("filehash")
@@ -316,10 +353,20 @@ func FileMetaUpdateHandler(w http.ResponseWriter, r *http.Request) {
 
 // FileDeleteHandler: remove file from filemeta and local
 func FileDeleteHandler(w http.ResponseWriter, r *http.Request) {
-	query := r.URL.Query()
-	fileSha1 := query.Get("filehash")
+	// 解析 JSON 请求
+	var req FileRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, `{"error": "Invalid JSON payload"}`, http.StatusBadRequest)
+		return
+	}
 
-	fMeta, err := meta.GetFileMetaDB(fileSha1)
+	if len(req.FileHash) <= 0 {
+		http.Error(w, `{"error": "Invalid limit value"}`, http.StatusBadRequest)
+		return
+	}
+	log.Printf("file hash: %s", req.FileHash)
+
+	fMeta, err := meta.GetFileMetaDB(req.FileHash)
 	if err != nil {
 		log.Printf("Failed to get file meta: %v", err)
 		w.WriteHeader(http.StatusNotFound)
@@ -338,7 +385,7 @@ func FileDeleteHandler(w http.ResponseWriter, r *http.Request) {
 		s3Client := s3.GetS3Client()
 		bucketBasics := s3.BucketBasics{S3Client: s3Client}
 		// 将fileSha1转换为[]string
-		fileSha1List := []string{fileSha1}
+		fileSha1List := []string{req.FileHash}
 		err = bucketBasics.DeleteObjects(cfg.S3_BUCKET_NAME, fileSha1List)
 
 	default:
@@ -353,7 +400,7 @@ func FileDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 从数据库中删除文件元信息
-	err = meta.RemoveFileMeta(fileSha1)
+	err = meta.RemoveFileMeta(req.FileHash)
 	if err != nil {
 		log.Printf("Failed to remove file meta from DB: %v", err)
 		w.WriteHeader(http.StatusInternalServerError)

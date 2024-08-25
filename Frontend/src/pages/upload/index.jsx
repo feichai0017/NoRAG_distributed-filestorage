@@ -5,7 +5,6 @@ import axios from 'axios';
 const Upload = () => {
     const [file, setFile] = useState(null);
     const [fileName, setFileName] = useState('');
-    const [username, setUsername] = useState('');
     const [uploadMode, setUploadMode] = useState('normal');
     const [uploadProgress, setUploadProgress] = useState(0);
     const [isUploading, setIsUploading] = useState(false);
@@ -42,7 +41,6 @@ const Upload = () => {
 
         const formData = new FormData();
         formData.append('file', file);
-        formData.append('username', username);
         formData.append('filename', fileName);
 
         try {
@@ -99,7 +97,6 @@ const Upload = () => {
 
         return axios.post('/api/mpupload/complete', {
             uploadid: uploadID,
-            username: username,
             filehash: await calculateFileHash(file),
             filesize: file.size,
             filename: fileName
@@ -135,12 +132,6 @@ const Upload = () => {
                     <form onSubmit={handleUpload}>
                         <div className="form">
                             <h4>{fileName}</h4>
-                            <input
-                                type="text"
-                                placeholder="Enter your name"
-                                value={username}
-                                onChange={(e) => setUsername(e.target.value)}
-                            />
                             <select
                                 value={uploadMode}
                                 onChange={(e) => setUploadMode(e.target.value)}

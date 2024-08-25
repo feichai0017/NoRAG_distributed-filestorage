@@ -2,6 +2,7 @@ package meta
 
 import (
 	mydb "cloud_distributed_storage/database"
+	"log"
 	"sync"
 )
 
@@ -46,8 +47,7 @@ func GetFileMeta(fileSha1 string) FileMeta {
 
 // GetFileMetaDB: get filemeta from mysql
 func GetFileMetaDB(fileSha1 string) (FileMeta, error) {
-	mu.RLock()
-	defer mu.RUnlock()
+	log.Printf("start get file meta from mysql\n")
 	tfile, err := mydb.GetFileMeta(fileSha1)
 	if err != nil {
 		return FileMeta{}, err

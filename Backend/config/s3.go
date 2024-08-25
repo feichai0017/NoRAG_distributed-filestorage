@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"github.com/joho/godotenv"
 	"log"
 	"os"
@@ -8,8 +9,9 @@ import (
 
 func init() {
 	// Load .env file
-	err := godotenv.Load("cloud_distributed_storage/.env")
+	err := godotenv.Load("/usr/local/Distributed_system/cloud_distributed_storage/Backend/.env")
 	if err != nil {
+		fmt.Println(err.Error())
 		log.Fatal("Error loading .env file")
 	}
 }
