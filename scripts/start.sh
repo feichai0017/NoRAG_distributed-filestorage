@@ -1,10 +1,7 @@
 #!/bin/bash
 
-# Start the Go project
-
-go run ./Backend/service/upload/main.go &
-go run ./Backend/service/transfer/main.go &
-./Frontend/node_modules/.bin/vite
+# Start the frontend project
+npm run dev --prefix ./Frontend
 
 # Wait for a few seconds to ensure the server is up and running
 

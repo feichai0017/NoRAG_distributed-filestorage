@@ -1,6 +1,13 @@
 import './index.css'
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
+import {
+    cancelMultipartUploadAPI,
+    completeMultipartUploadAPI,
+    getMultipartUploadStatusAPI, initMultipartUploadAPI,
+    uploadAPI,
+    uploadPartAPI
+} from "@/api/files.jsx";
 
 const Upload = () => {
     const [file, setFile] = useState(null);
@@ -9,6 +16,7 @@ const Upload = () => {
     const [uploadProgress, setUploadProgress] = useState(0);
     const [isUploading, setIsUploading] = useState(false);
     const cancelTokenSource = useRef(null);
+    const [uploadId, setUploadId] = useState(null);
 
     useEffect(() => {
         return () => {
@@ -46,7 +54,7 @@ const Upload = () => {
         try {
             let response;
             if (uploadMode === 'normal' || file.size <= 5 * 1024 * 1024) {
-                response = await axios.post('/api/upload', formData, {
+                response = await uploadAPI(formData, {
                     cancelToken: cancelTokenSource.current.token,
                     onUploadProgress: (progressEvent) => {
                         const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
@@ -71,10 +79,9 @@ const Upload = () => {
     };
 
     const initiateMultipartUpload = async (formData) => {
-        const initResponse = await axios.post('/api/mpupload/init', formData, {
-            cancelToken: cancelTokenSource.current.token
-        });
+        const initResponse = await initMultipartUploadAPI(formData);
         const { uploadID, chunkSize, chunkCount } = initResponse.data;
+        setUploadId(uploadID);
 
         for (let i = 0; i < chunkCount; i++) {
             const start = i * chunkSize;
@@ -86,7 +93,7 @@ const Upload = () => {
             chunkFormData.append('uploadid', uploadID);
             chunkFormData.append('index', i);
 
-            await axios.post('/api/mpupload/uploadpart', chunkFormData, {
+            await uploadPartAPI(chunkFormData, {
                 cancelToken: cancelTokenSource.current.token,
                 onUploadProgress: (progressEvent) => {
                     const percentCompleted = Math.round(((i * chunkSize + progressEvent.loaded) * 100) / file.size);
@@ -95,23 +102,47 @@ const Upload = () => {
             });
         }
 
-        return axios.post('/api/mpupload/complete', {
+        return completeMultipartUploadAPI({
             uploadid: uploadID,
             filehash: await calculateFileHash(file),
             filesize: file.size,
             filename: fileName
-        }, {
-            cancelToken: cancelTokenSource.current.token
         });
     };
 
-    const calculateFileHash = async (file) => {
-        return Math.random().toString(36).substring(7);
-    };
-
-    const handleCancelUpload = () => {
+    const handleCancelUpload = async () => {
         if (cancelTokenSource.current) {
             cancelTokenSource.current.cancel('Upload cancelled by user');
+        }
+        if (uploadId) {
+            await cancelMultipartUploadAPI({ uploadid: uploadId });
+            setUploadId(null);
+        }
+    };
+    const calculateFileHash = async (file) => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const arrayBuffer = e.target.result;
+                    const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer);
+                    const hashArray = Array.from(new Uint8Array(hashBuffer));
+                    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+                    resolve(hashHex);
+                } catch (error) {
+                    reject(error);
+                }
+            };
+            reader.onerror = error => reject(error);
+            reader.readAsArrayBuffer(file);
+        });
+    };
+
+    const checkUploadStatus = async () => {
+        if (uploadId) {
+            const status = await getMultipartUploadStatusAPI({ uploadid: uploadId });
+            console.log('Upload status:', status.data);
+            // 你可以根据状态更新UI
         }
     };
 

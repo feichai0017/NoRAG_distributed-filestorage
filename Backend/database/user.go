@@ -1,7 +1,7 @@
 package database
 
 import (
-	mydb "cloud_distributed_storage/database/mysql"
+	mydb "cloud_distributed_storage/Backend/database/mysql"
 	"fmt"
 )
 

@@ -1,6 +1,6 @@
 package mq
 
-import "cloud_distributed_storage/common"
+import "cloud_distributed_storage/Backend/common"
 
 // TransferData : 定义一个数据传输的结构体
 type TransferData struct {

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"cloud_distributed_storage/store/ceph"
+	"cloud_distributed_storage/Backend/store/ceph"
 	"fmt"
 )
 

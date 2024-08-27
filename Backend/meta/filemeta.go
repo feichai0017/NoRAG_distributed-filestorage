@@ -1,7 +1,7 @@
 package meta
 
 import (
-	mydb "cloud_distributed_storage/database"
+	mydb "cloud_distributed_storage/Backend/database"
 	"log"
 	"sync"
 )

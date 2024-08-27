@@ -1,11 +1,10 @@
 package handler
 
 import (
-	dblayer "cloud_distributed_storage/database"
-	"cloud_distributed_storage/util"
-	"encoding/json"
+	dblayer "cloud_distributed_storage/Backend/database"
+	"cloud_distributed_storage/Backend/util"
 	"fmt"
-	"io/ioutil"
+	"github.com/gin-gonic/gin"
 	"net/http"
 	"time"
 )
@@ -27,120 +26,81 @@ type UserResponse struct {
 }
 
 // SignupHandler: handle user signup
-func SignupHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("SignupHandler called")
-	if r.Method == http.MethodPost {
-		var req UserRequest
-		err := json.NewDecoder(r.Body).Decode(&req)
-		if err != nil {
-			fmt.Println("Error decoding request:", err)
-			http.Error(w, "Invalid request payload", http.StatusBadRequest)
-			return
-		}
-		fmt.Printf("Received signup request: %+v\n", req)
-
-		username := req.Username
-		password := req.Password
-		email := req.Email
-
-		if len(username) < 2 || len(password) < 4 || len(email) == 0 {
-			http.Error(w, fmt.Sprintf("Invalid parameter: username=%d, password=%d, email=%d", len(username), len(password), len(email)), http.StatusBadRequest)
-			return
-		}
-		enc_password := util.Sha1([]byte(password + pwd_salt))
-		suc := dblayer.UserSignup(username, enc_password, email)
-		resp := UserResponse{}
-		if suc {
-			resp.Code = 0
-			resp.Msg = "SUCCESS"
-		} else {
-			resp.Code = -1
-			resp.Msg = "FAILED"
-		}
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+func SignupHandler(c *gin.Context) {
+	var req UserRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request payload"})
 		return
 	}
-	http.Error(w, "Request error", http.StatusMethodNotAllowed)
+
+	username := req.Username
+	password := req.Password
+	email := req.Email
+
+	if len(username) < 2 || len(password) < 4 || len(email) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid parameter"})
+		return
+	}
+	enc_password := util.Sha1([]byte(password + pwd_salt))
+	suc := dblayer.UserSignup(username, enc_password, email)
+	resp := UserResponse{}
+	if suc {
+		resp.Code = 0
+		resp.Msg = "SUCCESS"
+	} else {
+		resp.Code = -1
+		resp.Msg = "FAILED"
+	}
+	c.JSON(http.StatusOK, resp)
 }
 
 // SignInHandler: login api
-func SignInHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method == http.MethodPost {
+func SignInHandler(c *gin.Context) {
+	var req UserRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request payload"})
+		return
+	}
 
-		var req UserRequest
-		err := json.NewDecoder(r.Body).Decode(&req)
-		if err != nil {
-			http.Error(w, "Invalid request payload", http.StatusBadRequest)
-			return
-		}
-		//r.ParseForm()
-		//username := r.Form.Get("username")
-		//password := r.Form.Get("password")
-		username := req.Username
-		password := req.Password
-		encPassword := util.Sha1([]byte(password + pwd_salt))
+	username := req.Username
+	password := req.Password
+	encPassword := util.Sha1([]byte(password + pwd_salt))
 
-		pwdChecked := dblayer.UserSignIn(username, encPassword)
-		resp := UserResponse{}
-		if !pwdChecked {
+	pwdChecked := dblayer.UserSignIn(username, encPassword)
+	resp := UserResponse{}
+	if !pwdChecked {
+		resp.Code = -1
+		resp.Msg = "FAILED"
+	} else {
+		token := GenToken(username)
+		upRes := dblayer.UpdateToken(username, token)
+		if !upRes {
 			resp.Code = -1
 			resp.Msg = "FAILED"
 		} else {
-			token := GenToken(username)
-			upRes := dblayer.UpdateToken(username, token)
-			if !upRes {
-				resp.Code = -1
-				resp.Msg = "FAILED"
-			} else {
-				resp.Code = 0
-				resp.Msg = "SUCCESS"
-				resp.Token = token
-			}
+			resp.Code = 0
+			resp.Msg = "SUCCESS"
+			resp.Token = token
 		}
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
-		return
-
-		//w.Write([]byte("http://"+r.Host+))
-		//resp := util.RespMsg{
-		//	Code: 0,
-		//	Msg:  "OK",
-		//	Data: struct {
-		//		Location string
-		//		Username string
-		//		Token    string
-		//	}{
-		//		Location: "http://" + r.Host + "/service",
-		//		Username: username,
-		//		Token:    token,
-		//	},
-		//}
 	}
+	c.JSON(http.StatusOK, resp)
 }
 
-func UserInfoHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method == http.MethodGet {
-		data, err := ioutil.ReadFile("/usr/local/Distributed_system/cloud_distributed_storage/static/view/userinfo.html")
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		w.Write(data)
-		return
-	}
-	r.ParseForm()
-	username := r.Form.Get("username")
-	token := r.Form.Get("token")
-	username, err := ValidateTokenAndGetUsername(token)
+func UserInfoHandler(c *gin.Context) {
+	username, err := GetUsernameFromContext(c)
 	if err != nil {
-		w.WriteHeader(http.StatusForbidden)
+		c.JSON(http.StatusOK, gin.H{"error": "User not found"})
+	}
+	token := c.Query("token")
+	username, err = ValidateTokenAndGetUsername(token)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{"error": "Invalid token"})
 		return
 	}
 
 	user, err := dblayer.GetUserInfo(username)
 	if err != nil {
-		w.WriteHeader(http.StatusForbidden)
+		c.JSON(http.StatusForbidden, gin.H{"error": "User not found"})
 		return
 	}
 
@@ -149,7 +109,7 @@ func UserInfoHandler(w http.ResponseWriter, r *http.Request) {
 		Msg:  "OK",
 		Data: user,
 	}
-	w.Write(resp.JSONBytes())
+	c.JSON(http.StatusOK, resp)
 }
 
 func GenToken(username string) string {

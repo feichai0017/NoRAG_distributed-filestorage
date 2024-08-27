@@ -2,10 +2,10 @@ package main
 
 import (
 	"bufio"
-	"cloud_distributed_storage/config"
-	dblayer "cloud_distributed_storage/database"
-	"cloud_distributed_storage/mq"
-	"cloud_distributed_storage/store/s3"
+	"cloud_distributed_storage/Backend/config"
+	dblayer "cloud_distributed_storage/Backend/database"
+	"cloud_distributed_storage/Backend/mq"
+	"cloud_distributed_storage/Backend/store/s3"
 	"encoding/json"
 	"log"
 	"os"

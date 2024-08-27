@@ -1,6 +1,7 @@
 import './index.css'
 import React, { useState, useEffect } from 'react';
 import {deleteAPI, downloadAPI, queryAllAPI} from "@/api/files.jsx";
+import {getToken} from "@/utils/index.jsx";
 
 const UserFiles = () => {
     const [limit, setLimit] = useState(10);
@@ -13,6 +14,7 @@ const UserFiles = () => {
     const fetchFiles = async () => {
         try {
             const limitInt = parseInt(limit, 10);
+            console.log("Token before request:", getToken());
             const data = await queryAllAPI({
                 limit: limitInt,
             });
@@ -33,16 +35,12 @@ const UserFiles = () => {
         fetchFiles();
     }, [limit]); // 组件加载时获取文件列表
 
-    const handleFormSubmit = (e) => {
-        e.preventDefault();
-        fetchFiles();
-    };
 
     return (
         <div className="file-display">
             <div className="user-files">
                 <h1>User Uploaded Files</h1>
-                <form id="queryForm" onSubmit={handleFormSubmit}>
+                <form id="queryForm" >
                     <label htmlFor="limit">Number of Files:</label>
                     <input
                         type="number"

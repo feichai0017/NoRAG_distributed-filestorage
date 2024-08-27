@@ -16,6 +16,10 @@ This project is a cloud-based distributed file system designed for scalability, 
     - **Framework:** Gin - A lightweight web framework for building high-performance APIs in Go.
     - **API Documentation:** Swagger - A tool for documenting and testing APIs.
 - **Programming Language:** Go, JavaScript
+- **Micro Services:**
+    - **File Management:** Handles file upload, download, and management operations.
+    - **Framework:** go-micro - A pluggable microservices framework for Go.
+    - **Communication:** gRPC - A high-performance, open-source RPC framework.
 - **Distributed Storage:**
     - **Ceph:** A unified, distributed storage system designed for excellent performance, reliability, and scalability.
     - **AWS S3:** Integrated for additional cloud storage capabilities and global accessibility.

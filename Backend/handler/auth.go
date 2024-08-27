@@ -1,35 +1,39 @@
 package handler
 
 import (
-	"context"
+	"github.com/gin-gonic/gin"
+	"log"
 	"net/http"
 	"strings"
 )
 
 // HTTPInterceptor 拦截器
-func HTTPInterceptor(h http.HandlerFunc) http.HandlerFunc {
-	return http.HandlerFunc(
-		func(w http.ResponseWriter, r *http.Request) {
-			authHeader := r.Header.Get("Authorization")
-			if authHeader == "" {
-				http.Error(w, "No authorization token provided", http.StatusUnauthorized)
-				return
-			}
+func HTTPInterceptor(h gin.HandlerFunc) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		authHeader := c.GetHeader("Authorization")
+		log.Printf("Received Authorization header: %s", authHeader)
+		if authHeader == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "No authorization token provided"})
+			c.Abort()
+			return
+		}
 
-			// 解析 Bearer token
-			token := strings.TrimPrefix(authHeader, "Bearer ")
+		// 解析 Bearer token
+		token := strings.TrimPrefix(authHeader, "Bearer ")
+		log.Printf("token: %s", token)
 
-			username, err := ValidateTokenAndGetUsername(token)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusUnauthorized)
-				return
-			}
+		username, err := ValidateTokenAndGetUsername(token)
+		log.Printf("username: %s", username)
+		if err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+			c.Abort()
+			return
+		}
 
-			// 将 username 添加到请求的上下文中
-			ctx := context.WithValue(r.Context(), "username", username)
-			r = r.WithContext(ctx)
-			h(w, r)
+		// 将 username 添加到请求的上下文中
+		c.Set("username", username)
+		h(c)
 
-		})
+	}
 
 }

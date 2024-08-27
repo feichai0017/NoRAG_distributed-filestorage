@@ -1,12 +1,9 @@
 package ceph
 
 import (
-	"fmt"
-	"github.com/joho/godotenv"
+	"cloud_distributed_storage/Backend/config"
 	"gopkg.in/amz.v1/aws"
 	"gopkg.in/amz.v1/s3"
-	"log"
-	"os"
 )
 
 var cephConn *s3.S3
@@ -16,22 +13,16 @@ func GetCephConn() *s3.S3 {
 	if cephConn != nil {
 		return cephConn
 	}
-	// 加载 .env 文件
-	err := godotenv.Load("/usr/local/Distributed_system/cloud_distributed_storage/Backend/.env")
-	if err != nil {
-		log.Fatal("Error loading .env file")
-		fmt.Println(err.Error())
-	}
 
 	auth := aws.Auth{
-		AccessKey: os.Getenv("CEPH_ACCESS_KEY"),
-		SecretKey: os.Getenv("CEPH_SECRET_KEY"),
+		AccessKey: config.CephAccessKey,
+		SecretKey: config.CephSecretKey,
 	}
 
 	curRegion := aws.Region{
 		Name:                 "default",
-		EC2Endpoint:          "http://172.20.0.15:7480",
-		S3Endpoint:           "http://172.20.0.15:7480",
+		EC2Endpoint:          config.CephGWEndpoint,
+		S3Endpoint:           config.CephGWEndpoint,
 		S3BucketEndpoint:     "",
 		S3LocationConstraint: false,
 		S3LowercaseBucket:    false,

@@ -1,7 +1,7 @@
 package mq
 
 import (
-	"cloud_distributed_storage/config"
+	"cloud_distributed_storage/Backend/config"
 	"github.com/streadway/amqp"
 	"log"
 )

@@ -1,5 +1,4 @@
 version: '3'
-
 services:
   mysql-master:
     build:
@@ -46,4 +45,21 @@ services:
       - "7480:7480"
     environment:
       - CEPH_CONF=/etc/ceph.conf
-        - RGW_NAME=rgw
+      - RGW_NAME=rgw
+
+  consul:
+    image: consul:1.14
+    ports:
+      - "8500:8500"
+      - "8600:8600/udp"
+    command: "agent -server -ui -node=server-1 -bootstrap-expect=1 -client=0.0.0.0"
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    hostname: rabbit-server
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+      - "25672:25672"
+    volumes:
+      - /data/rabbitmq:/var/lib/rabbitmq

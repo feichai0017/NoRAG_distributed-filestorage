@@ -1,14 +1,16 @@
 package handler
 
 import (
-	rPool "cloud_distributed_storage/cache/redis"
-	dblayer "cloud_distributed_storage/database"
-	"cloud_distributed_storage/meta"
-	"cloud_distributed_storage/util"
+	rPool "cloud_distributed_storage/Backend/cache/redis"
+	"cloud_distributed_storage/Backend/config"
+	dblayer "cloud_distributed_storage/Backend/database"
+	"cloud_distributed_storage/Backend/meta"
+	"cloud_distributed_storage/Backend/util"
 	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
 	"github.com/garyburd/redigo/redis"
+	"github.com/gin-gonic/gin"
 	"io"
 	"math"
 	"net/http"
@@ -28,17 +30,26 @@ type MultiPartUploadInfo struct {
 	ChunkCount int
 }
 
-func InitialMultipartUploadHandler(w http.ResponseWriter, r *http.Request) {
-	// 解析请求参数
-	r.ParseForm()
-	username := r.Form.Get("username")
-	filehash := r.Form.Get("filehash")
-	filesize, err := strconv.Atoi(r.Form.Get("filesize"))
+func init() {
+	os.MkdirAll(config.TempPartRootDir, 0744)
+}
+
+// InitialMultipartUploadHandler: initialize multipart upload
+func InitialMultipartUploadHandler(c *gin.Context) {
+	// 1. 解析用户请求参数
+	username := c.Request.FormValue("username")
+	filehash := c.Request.FormValue("filehash")
+	filesize, err := strconv.Atoi(c.Request.FormValue("filesize"))
 	if err != nil {
-		w.Write(util.NewRespMsg(-1, "params invalid", nil).JSONBytes())
+		c.JSON(
+			http.StatusOK,
+			gin.H{
+				"code": -1,
+				"msg":  "params invalid",
+			})
 		return
 	}
-	//connect redis pool
+
 	rConn := rPool.RedisPool().Get()
 	defer rConn.Close()
 
@@ -46,45 +57,39 @@ func InitialMultipartUploadHandler(w http.ResponseWriter, r *http.Request) {
 		FileHash:   filehash,
 		FileSize:   filesize,
 		UploadID:   username + fmt.Sprintf("%x", time.Now().UnixNano()),
-		ChunkSize:  5 * 1024 * 1024, //5MB
+		ChunkSize:  5 * 1024 * 1024,
 		ChunkCount: int(math.Ceil(float64(filesize) / (5 * 1024 * 1024))),
 	}
-	// 将初始化信息写入redis
+
 	rConn.Do("HSET", "MP_"+upInfo.UploadID, "chunkcount", upInfo.ChunkCount)
 	rConn.Do("HSET", "MP_"+upInfo.UploadID, "filehash", upInfo.FileHash)
 	rConn.Do("HSET", "MP_"+upInfo.UploadID, "filesize", upInfo.FileSize)
 
-	// return response
-	w.Write(util.NewRespMsg(0, "OK", upInfo).JSONBytes())
-
+	c.JSON(http.StatusOK, util.NewRespMsg(0, "OK", upInfo))
 }
 
 // UploadPartHandler:上传分块
-func UploadPartHandler(w http.ResponseWriter, r *http.Request) {
-	// 解析请求参数
-	r.ParseForm()
-	uploadID := r.Form.Get("uploadid")
-	chunkIndex := r.Form.Get("index")
-	expectedHash := r.Form.Get("filehash") // 获取预期的哈希值
-	// get a connection from redis pool
+func UploadPartHandler(c *gin.Context) {
+	uploadID := c.PostForm("uploadid")
+	chunkIndex := c.PostForm("index")
+	expectedHash := c.PostForm("filehash")
+
 	rConn := rPool.RedisPool().Get()
 	defer rConn.Close()
 
-	// 获取文件句柄，用于存储分块内容
 	fpath := "/data/" + uploadID + "/" + chunkIndex
 	os.MkdirAll(path.Dir(fpath), 0744)
 	fd, err := os.Create(fpath)
 	if err != nil {
-		w.Write(util.NewRespMsg(-1, "Upload part failed", nil).JSONBytes())
+		c.JSON(http.StatusOK, util.NewRespMsg(-1, "Upload part failed", nil))
 		return
 	}
 	defer fd.Close()
 
-	// 读取分块内容并计算sha1
 	buf := make([]byte, 1024*1024)
 	hash := sha1.New()
 	for {
-		n, err := r.Body.Read(buf)
+		n, err := c.Request.Body.Read(buf)
 		if n > 0 {
 			hash.Write(buf[:n])
 			fd.Write(buf[:n])
@@ -93,42 +98,35 @@ func UploadPartHandler(w http.ResponseWriter, r *http.Request) {
 			if err == io.EOF {
 				break
 			}
-			w.Write(util.NewRespMsg(-1, "Upload part failed", nil).JSONBytes())
+			c.JSON(http.StatusOK, util.NewRespMsg(-1, "Upload part failed", nil))
 			return
 		}
 	}
 
 	calculatedHash := hex.EncodeToString(hash.Sum(nil))
 	if calculatedHash != expectedHash {
-		w.Write(util.NewRespMsg(-1, "Hash mismatch", nil).JSONBytes())
+		c.JSON(http.StatusOK, util.NewRespMsg(-1, "Hash mismatch", nil))
 		return
 	}
 
-	// 更新redis状态
 	rConn.Do("HSET", "MP_"+uploadID, "chkidx_"+chunkIndex, 1)
-
-	// 返回处理结果到客户端
-	w.Write(util.NewRespMsg(0, "OK", nil).JSONBytes())
+	c.JSON(http.StatusOK, util.NewRespMsg(0, "OK", nil))
 }
 
 // CompleteUploadHandler:通知上传合并
-func CompleteUploadHandler(w http.ResponseWriter, r *http.Request) {
-	// 解析请求参数
-	r.ParseForm()
-	uploadID := r.Form.Get("uploadid")
-	username := r.Form.Get("username")
-	filehash := r.Form.Get("filehash")
-	filesize := r.Form.Get("filesize")
-	filename := r.Form.Get("filename")
+func CompleteUploadHandler(c *gin.Context) {
+	uploadID := c.PostForm("uploadid")
+	username := c.PostForm("username")
+	filehash := c.PostForm("filehash")
+	filesize := c.PostForm("filesize")
+	filename := c.PostForm("filename")
 
-	// get a connection from redis pool
 	rConn := rPool.RedisPool().Get()
 	defer rConn.Close()
 
-	// 获取分块信息
 	data, err := redis.Values(rConn.Do("HGETALL", "MP_"+uploadID))
 	if err != nil || len(data) == 0 {
-		w.Write(util.NewRespMsg(-1, "Complete upload failed", nil).JSONBytes())
+		c.JSON(http.StatusOK, util.NewRespMsg(-1, "Complete upload failed", nil))
 		return
 	}
 
@@ -140,19 +138,18 @@ func CompleteUploadHandler(w http.ResponseWriter, r *http.Request) {
 
 		if k == "chunkcount" {
 			totalCount, _ = strconv.Atoi(v)
-		} else if strings.HasPrefix(k, "chikidx_") && v == "1" {
+		} else if strings.HasPrefix(k, "chkidx_") && v == "1" {
 			chunkCount += 1
 		}
 	}
 	if totalCount != chunkCount {
-		w.Write(util.NewRespMsg(-2, "Invalid request", nil).JSONBytes())
+		c.JSON(http.StatusOK, util.NewRespMsg(-2, "Invalid request", nil))
 		return
 	}
 
-	// 合并分块
 	mergeFile, err := os.Create("/data/" + filehash)
 	if err != nil {
-		w.Write(util.NewRespMsg(-1, "Complete upload failed", nil).JSONBytes())
+		c.JSON(http.StatusOK, util.NewRespMsg(-1, "Complete upload failed", nil))
 		return
 	}
 	defer mergeFile.Close()
@@ -161,7 +158,7 @@ func CompleteUploadHandler(w http.ResponseWriter, r *http.Request) {
 		fpath := "/data/" + uploadID + "/" + strconv.Itoa(i)
 		chunkFile, err := os.Open(fpath)
 		if err != nil {
-			w.Write(util.NewRespMsg(-1, "Complete upload failed", nil).JSONBytes())
+			c.JSON(http.StatusOK, util.NewRespMsg(-1, "Complete upload failed", nil))
 			return
 		}
 		defer chunkFile.Close()
@@ -175,19 +172,18 @@ func CompleteUploadHandler(w http.ResponseWriter, r *http.Request) {
 				if err == io.EOF {
 					break
 				}
-				w.Write(util.NewRespMsg(-1, "Complete upload failed", nil).JSONBytes())
+				c.JSON(http.StatusOK, util.NewRespMsg(-1, "Complete upload failed", nil))
 				return
 			}
 		}
 	}
-	// 清除Redis中关于这个文件的分块信息
+
 	_, err = rConn.Do("DEL", "MP_"+uploadID)
 	if err != nil {
-		w.Write(util.NewRespMsg(-1, "Failed to clear upload info from Redis", nil).JSONBytes())
+		c.JSON(http.StatusOK, util.NewRespMsg(-1, "Failed to clear upload info from Redis", nil))
 		return
 	}
 
-	// upload to database
 	fileSizeInt, _ := strconv.ParseInt(filesize, 10, 64)
 	fileMeta := meta.FileMeta{
 		FileSha1: filehash,
@@ -201,43 +197,35 @@ func CompleteUploadHandler(w http.ResponseWriter, r *http.Request) {
 	suc := dblayer.OnUserFileUploadFinished(username, filehash, filename, fileSizeInt)
 
 	if suc {
-		w.Write(util.NewRespMsg(0, "OK", nil).JSONBytes())
+		c.JSON(http.StatusOK, util.NewRespMsg(0, "OK", nil))
 	} else {
-		w.Write(util.NewRespMsg(-1, "Upload failed", nil).JSONBytes())
+		c.JSON(http.StatusOK, util.NewRespMsg(-1, "Upload failed", nil))
 	}
 }
 
 // CancelUploadHandler:取消上传
-func CancelUploadHandler(w http.ResponseWriter, r *http.Request) {
-	// 解析请求参数
-	r.ParseForm()
-	uploadID := r.Form.Get("uploadid")
+func CancelUploadHandler(c *gin.Context) {
+	uploadID := c.PostForm("uploadid")
 
-	// get a connection from redis pool
 	rConn := rPool.RedisPool().Get()
 	defer rConn.Close()
 
-	// 删除分块文件
 	os.RemoveAll("/data/" + uploadID)
-	// 删除redis记录
 	rConn.Do("DEL", "MP_"+uploadID)
 
-	w.Write(util.NewRespMsg(0, "OK", nil).JSONBytes())
+	c.JSON(http.StatusOK, util.NewRespMsg(0, "OK", nil))
 }
 
 // MultipartUploadStatusHandler:查询分块上传的状态
-func MultipartUploadStatusHandler(w http.ResponseWriter, r *http.Request) {
-	// 解析请求参数
-	r.ParseForm()
-	uploadID := r.Form.Get("uploadid")
+func MultipartUploadStatusHandler(c *gin.Context) {
+	uploadID := c.PostForm("uploadid")
 
-	// get a connection from redis pool
 	rConn := rPool.RedisPool().Get()
 	defer rConn.Close()
 
 	data, err := redis.Values(rConn.Do("HGETALL", "MP_"+uploadID))
 	if err != nil {
-		w.Write(util.NewRespMsg(-1, "Multipart upload failed", nil).JSONBytes())
+		c.JSON(http.StatusOK, util.NewRespMsg(-1, "Multipart upload failed", nil))
 		return
 	}
 	ret := make(map[string]interface{})
@@ -246,10 +234,10 @@ func MultipartUploadStatusHandler(w http.ResponseWriter, r *http.Request) {
 		v := string(data[i+1].([]byte))
 		ret[k] = v
 	}
-	w.Write(util.NewRespMsg(0, "OK", ret).JSONBytes())
+	c.JSON(http.StatusOK, util.NewRespMsg(0, "OK", ret))
 }
 
-// TODO: 断点下载
+// TODO: 断点续传
 func MultiDownloadHandler(w http.ResponseWriter, r *http.Request) {
 	//r.ParseForm()
 	//fsha1 := r.Form.Get("filehash")

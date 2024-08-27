@@ -1,0 +1,31 @@
+syntax="proto3";
+
+package go.micro.service.user;
+option go_package = "cloud_distributed_storage/Backend/service/account/proto;proto";
+
+service UserService {
+  rpc Signup(ReqSignup) returns (ResSignup){}
+  rpc Login(ReqLogin) returns (ResLogin){}
+}
+
+message ReqSignup{
+  string username = 1;
+  string password = 2;
+  string email = 3;
+}
+
+message ResSignup{
+  int32 code = 1;
+  string message = 2;
+}
+
+
+message ReqLogin{
+  string username = 1;
+  string password = 2;
+}
+
+message ResLogin{
+  int32 code = 1;
+  string message = 2;
+}

@@ -4,7 +4,7 @@ import (
 	"context"
 	"log"
 
-	cfg "cloud_distributed_storage/config"
+	cfg "cloud_distributed_storage/Backend/config"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
