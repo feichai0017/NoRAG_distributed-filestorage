@@ -5,7 +5,7 @@ package proto
 
 import (
 	fmt "fmt"
-	proto "github.com/golang/protobuf/proto"
+	proto "google.golang.org/protobuf/proto"
 	math "math"
 )
 
@@ -20,12 +20,6 @@ import (
 var _ = proto.Marshal
 var _ = fmt.Errorf
 var _ = math.Inf
-
-// This is a compile-time assertion to ensure that this generated file
-// is compatible with the proto package it is being compiled against.
-// A compilation error at this line likely means your copy of the
-// proto package needs to be updated.
-const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ api.Endpoint
@@ -44,6 +38,7 @@ func NewUserServiceEndpoints() []*api.Endpoint {
 type UserService interface {
 	Signup(ctx context.Context, in *ReqSignup, opts ...client.CallOption) (*ResSignup, error)
 	Login(ctx context.Context, in *ReqLogin, opts ...client.CallOption) (*ResLogin, error)
+	UserInfo(ctx context.Context, in *ReqUserInfo, opts ...client.CallOption) (*ResUserInfo, error)
 }
 
 type userService struct {
@@ -78,17 +73,29 @@ func (c *userService) Login(ctx context.Context, in *ReqLogin, opts ...client.Ca
 	return out, nil
 }
 
+func (c *userService) UserInfo(ctx context.Context, in *ReqUserInfo, opts ...client.CallOption) (*ResUserInfo, error) {
+	req := c.c.NewRequest(c.name, "UserService.UserInfo", in)
+	out := new(ResUserInfo)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Server API for UserService service
 
 type UserServiceHandler interface {
 	Signup(context.Context, *ReqSignup, *ResSignup) error
 	Login(context.Context, *ReqLogin, *ResLogin) error
+	UserInfo(context.Context, *ReqUserInfo, *ResUserInfo) error
 }
 
 func RegisterUserServiceHandler(s server.Server, hdlr UserServiceHandler, opts ...server.HandlerOption) error {
 	type userService interface {
 		Signup(ctx context.Context, in *ReqSignup, out *ResSignup) error
 		Login(ctx context.Context, in *ReqLogin, out *ResLogin) error
+		UserInfo(ctx context.Context, in *ReqUserInfo, out *ResUserInfo) error
 	}
 	type UserService struct {
 		userService
@@ -107,4 +114,8 @@ func (h *userServiceHandler) Signup(ctx context.Context, in *ReqSignup, out *Res
 
 func (h *userServiceHandler) Login(ctx context.Context, in *ReqLogin, out *ResLogin) error {
 	return h.UserServiceHandler.Login(ctx, in, out)
+}
+
+func (h *userServiceHandler) UserInfo(ctx context.Context, in *ReqUserInfo, out *ResUserInfo) error {
+	return h.UserServiceHandler.UserInfo(ctx, in, out)
 }

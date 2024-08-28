@@ -2,7 +2,7 @@ package main
 
 import (
 	"cloud_distributed_storage/Backend/service/account/handler"
-	proto "cloud_distributed_storage/Backend/service/account/proto"
+	userProto "cloud_distributed_storage/Backend/service/account/proto"
 	"github.com/asim/go-micro/plugins/registry/consul/v3"
 	"github.com/asim/go-micro/v3"
 	"github.com/asim/go-micro/v3/registry"
@@ -25,7 +25,7 @@ func main() {
 	service.Init()
 
 	// 注册处理程序
-	if err := proto.RegisterUserServiceHandler(service.Server(), new(handler.User)); err != nil {
+	if err := userProto.RegisterUserServiceHandler(service.Server(), new(handler.User)); err != nil {
 		log.Fatalf("Failed to register handler: %v", err)
 	}
 

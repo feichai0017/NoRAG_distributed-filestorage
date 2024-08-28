@@ -3,7 +3,7 @@ import {request} from "@/utils"
 
 export function loginAPI(formData){
     return  request({
-        url:'/api/user/login',
+        url:'/user/login',
         method:'POST',
         data: formData
     })
@@ -11,7 +11,7 @@ export function loginAPI(formData){
 
 export function signUpAPI(formData){
     return  request({
-        url:'/api/user/signup',
+        url:'/user/signup',
         method:'POST',
         data: formData
     })
@@ -20,7 +20,7 @@ export function signUpAPI(formData){
 
 export function getProfileAPI(){
     return  request({
-        url:'/api/user/info',
+        url:'/user/info',
         method:'GET',
     })
 }

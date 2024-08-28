@@ -21,6 +21,31 @@ func GenToken(username string) string {
 	return tokenPrefix + ts[:8]
 }
 
+// ValidateTokenAndGetUsername : 验证token
+func ValidateTokenAndGetUsername(token string) (string, error) {
+	if len(token) <= 8 {
+		return "", fmt.Errorf("invalid token length")
+	}
+
+	// 验证 token 时效性
+	tokenTimestamp := token[len(token)-8:]
+	var ts int64
+	_, err := fmt.Sscanf(tokenTimestamp, "%x", &ts)
+	if err != nil {
+		return "", fmt.Errorf("invalid token timestamp")
+	}
+
+	tokenTime := time.Unix(ts, 0)
+	if time.Since(tokenTime) > 2*time.Hour {
+		return "", fmt.Errorf("token expired")
+	}
+	username := dblayer.QueryUserByToken(token)
+	if len(username) == 0 {
+		return "", fmt.Errorf("username not found: %v", err)
+	}
+	return username, nil
+}
+
 // Signup : RPC handler for user signup
 func (u *User) Signup(ctx context.Context, req *proto.ReqSignup, res *proto.ResSignup) error {
 	username := req.Username
@@ -67,5 +92,27 @@ func (u *User) Login(ctx context.Context, req *proto.ReqLogin, res *proto.ResLog
 			res.Message = "LOGIN SUCCESS"
 		}
 	}
+	return nil
+}
+
+func (u *User) UserInfo(ctx context.Context, req *proto.ReqUserInfo, res *proto.ResUserInfo) error {
+
+	username := req.Username
+
+	user, err := dblayer.GetUserInfo(username)
+	if err != nil {
+		res.Code = common.StatusUserNotExists
+		res.Message = "user not exists"
+		return nil
+	}
+
+	res.Code = common.StatusOK
+	res.Username = user.Username
+	res.SignupAt = user.SignupAt
+	res.LastActiveAt = user.LastActiveAt
+	res.Status = int32(user.Status)
+	// TODO: 需增加接口支持完善用户信息(email/phone等)
+	res.Email = user.Email
+	res.Phone = user.Phone
 	return nil
 }
