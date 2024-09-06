@@ -12,15 +12,15 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.60.0
 	github.com/aws/smithy-go v1.20.4
 	github.com/garyburd/redigo v1.6.4
+	github.com/gin-contrib/cors v1.7.2
 	github.com/gin-gonic/gin v1.10.0
 	github.com/go-sql-driver/mysql v1.8.1
-	github.com/golang/protobuf v1.5.3
 	github.com/joho/godotenv v1.5.1
 	github.com/micro/cli v0.2.0
-	github.com/micro/micro/v3 v3.19.0
 	github.com/rs/cors v1.11.0
 	github.com/streadway/amqp v1.1.0
 	github.com/stretchr/testify v1.9.0
+	golang.org/x/net v0.25.0
 	google.golang.org/protobuf v1.34.1
 	gopkg.in/amz.v1 v1.0.0-20150111123259-ad23e96a31d2
 )
@@ -52,12 +52,10 @@ require (
 	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/emirpasic/gods v1.12.0 // indirect
-	github.com/evanphx/json-patch/v5 v5.5.0 // indirect
 	github.com/fatih/color v1.9.0 // indirect
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.3 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
-	github.com/go-acme/lego/v3 v3.4.0 // indirect
 	github.com/go-git/gcfg v1.5.0 // indirect
 	github.com/go-git/go-billy/v5 v5.3.1 // indirect
 	github.com/go-git/go-git/v5 v5.4.2 // indirect
@@ -65,6 +63,8 @@ require (
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/go-playground/validator/v10 v10.20.0 // indirect
 	github.com/goccy/go-json v0.10.2 // indirect
+	github.com/golang/protobuf v1.5.3 // indirect
+	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/hashicorp/consul/api v1.9.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.1 // indirect
@@ -102,7 +102,6 @@ require (
 	github.com/xanzy/ssh-agent v0.3.0 // indirect
 	golang.org/x/arch v0.8.0 // indirect
 	golang.org/x/crypto v0.23.0 // indirect
-	golang.org/x/net v0.25.0 // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
 	golang.org/x/sys v0.20.0 // indirect
 	golang.org/x/text v0.15.0 // indirect
