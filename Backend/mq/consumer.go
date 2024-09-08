@@ -6,10 +6,7 @@ var done chan bool
 
 // StartConsumer: Start a consumer and monitor the message queue
 func StartConsumer(qName, cName string, callback func(msg []byte) bool) {
-	if !initChannel() {
-		log.Println("Failed to initialize channel")
-		return
-	}
+
 	// Start consumer
 	msgs, err := channel.Consume(
 		qName,
@@ -42,4 +39,9 @@ func StartConsumer(qName, cName string, callback func(msg []byte) bool) {
 
 	// Close the channel
 	channel.Close()
+}
+
+// StopConsume: Stop consuming messages
+func StopConsume() {
+	done <- true
 }

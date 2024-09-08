@@ -4,5 +4,8 @@ import "cloud_distributed_storage/Backend/service/apigw/route"
 
 func main() {
 	r := route.Router()
-	r.Run(":8081")
+	err := r.Run(":8081")
+	if err != nil {
+		return
+	}
 }

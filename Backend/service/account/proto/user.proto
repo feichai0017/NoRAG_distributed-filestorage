@@ -7,6 +7,8 @@ service UserService {
   rpc Signup(ReqSignup) returns (ResSignup){}
   rpc Login(ReqLogin) returns (ResLogin){}
   rpc UserInfo(ReqUserInfo) returns (ResUserInfo){}
+  rpc UserFiles(ReqUserFiles) returns (ResUserFiles){}
+  rpc UserFileRename(ReqUserFileRename) returns (ResUserFileRename){}
 }
 
 message ReqSignup{
@@ -44,4 +46,27 @@ message ResUserInfo {
   string signupAt = 6;
   string lastActiveAt = 7;
   int32 status = 8;
+}
+
+message ReqUserFiles {
+  string username = 1;
+  int32 limit = 2;
+}
+
+message ResUserFiles {
+  int32 code = 1;
+  string message = 2;
+  bytes fileData = 3;
+}
+
+message ReqUserFileRename {
+  string username = 1;
+  string filehash = 2;
+  string newFileName = 3;
+}
+
+message ResUserFileRename {
+  int32 code = 1;
+  string message = 2;
+  bytes fileData = 3;
 }

@@ -11,14 +11,14 @@ var db *sql.DB
 
 func init() {
 	var err error
-	db, err = sql.Open("mysql", "root:119742@tcp(127.0.0.1:3301)/fileserver?charset=utf8")
+	db, err = sql.Open("mysql", "root:119742@tcp(127.0.0.1:3306)/fileserver?charset=utf8")
 	if err != nil {
 		fmt.Printf("database faile to connected")
 	}
 	db.SetMaxOpenConns(1000)
 	err = db.Ping()
 	if err != nil {
-		fmt.Printf("faile to connect mysql,err:" + err.Error())
+		fmt.Printf("failed to connect mysql,err:" + err.Error())
 		os.Exit(1)
 	}
 }

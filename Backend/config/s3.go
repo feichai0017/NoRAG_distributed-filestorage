@@ -9,7 +9,7 @@ import (
 
 func init() {
 	// Load .env file
-	err := godotenv.Load("/usr/local/Distributed_system/cloud_distributed_storage/Backend/.env")
+	err := godotenv.Load("/Users/guochengsong/Documents/GitHub/cloud_distributed_file-system/Backend/.env")
 	if err != nil {
 		fmt.Println(err.Error())
 		log.Fatal("Error loading .env file")
