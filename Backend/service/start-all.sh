@@ -10,7 +10,7 @@ mkdir -p "$LOG_DIR"
 
 # 检查进程是否运行
 check_process() {
-    sleep 2
+    sleep 5  # 增加等待时间，确保服务有足够时间启动
     if pgrep -f "service/$1" > /dev/null; then
         echo -e "\033[32m已启动\033[0m $1"
         return 0
@@ -23,8 +23,12 @@ check_process() {
 # 启动服务
 start_service() {
     echo "正在启动 $1 服务..."
-    go run "./Backend/service/$1/main.go" >> "$LOG_DIR/$1.log" 2>&1 &
-    check_process "$1"
+    go run "./service/$1/main.go" >> "$LOG_DIR/$1.log" 2>&1 &
+    if ! check_process "$1"; then
+        echo "服务 $1 启动失败，退出脚本。"
+        exit 1
+    fi
+    sleep 2  # 在启动下一个服务之前稍作等待
 }
 
 # 服务列表

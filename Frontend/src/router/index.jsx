@@ -1,7 +1,7 @@
 import Login from "../pages/login";
 import SignUp from "../pages/signup";
 import {createBrowserRouter} from "react-router-dom";
-import AuthRoute from "../components/AuthRoute";
+// import AuthRoute from "../components/AuthRoute";
 import Dashboard from "../pages/dashboard";
 import Layout from "@/pages/layout/index.jsx";
 import Upload from "@/pages/upload/index.jsx";
@@ -14,9 +14,9 @@ const router = createBrowserRouter([
     {
         path: '/',
         element: (
-            <AuthRoute>
+            // <AuthRoute>
                 <Layout/>
-            </AuthRoute>
+            // </AuthRoute>
         ),
         children : [
             {

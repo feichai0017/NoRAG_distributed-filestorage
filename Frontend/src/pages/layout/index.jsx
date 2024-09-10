@@ -1,20 +1,27 @@
-import React from 'react';
-import { styled, createTheme, ThemeProvider } from '@mui/material/styles';
+import React, { useState } from 'react';
+import { styled } from '@mui/material/styles';
+import Box from '@mui/material/Box';
 import MuiAppBar from '@mui/material/AppBar';
 import MuiDrawer from '@mui/material/Drawer';
-import Box from '@mui/material/Box';
-import CssBaseline from '@mui/material/CssBaseline';
 import Toolbar from '@mui/material/Toolbar';
 import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
 import Divider from '@mui/material/Divider';
 import List from '@mui/material/List';
-import Badge from '@mui/material/Badge';
-import MenuIcon from '@mui/icons-material/Menu';
-import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+import ListItem from '@mui/material/ListItem';
+import ListItemIcon from '@mui/material/ListItemIcon';
+import ListItemText from '@mui/material/ListItemText';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
+import DialogTitle from '@mui/material/DialogTitle';
+import Button from '@mui/material/Button';
+import { Menu, ChevronLeft, AccountCircle, Brightness4, Brightness7, ExitToApp } from '@mui/icons-material';
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { ThemeProvider, createTheme } from '@mui/material/styles';
+import CssBaseline from '@mui/material/CssBaseline';
 import { mainListItems, secondaryListItems } from './ListItems';
-import {Link, Outlet, useLocation, useNavigate} from 'react-router-dom';
-import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 
 const drawerWidth = 240;
 
@@ -62,8 +69,6 @@ const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'open' 
     }),
 );
 
-const defaultTheme = createTheme();
-
 function Copyright(props) {
     return (
         <Typography variant="body2" color="text.secondary" align="center" {...props}>
@@ -77,32 +82,67 @@ function Copyright(props) {
     );
 }
 
-const Layout = () => {
-    const [open, setOpen] = React.useState(true);
+const EnhancedLayout = () => {
+    const [open, setOpen] = useState(true);
+    const [darkMode, setDarkMode] = useState(false);
+    const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
     const navigate = useNavigate();
+    const location = useLocation();
+
     const toggleDrawer = () => {
         setOpen(!open);
     };
 
-    const location = useLocation();
+    const toggleDarkMode = () => {
+        setDarkMode(!darkMode);
+    };
+
     const getPageTitle = (path) => {
         if (path === "/") {
-            return "dashboard";
+            return "Dashboard";
         }
-        return path.substring(1);
+        return path.substring(1).charAt(0).toUpperCase() + path.slice(2);
     };
+
     const handleClick = () => {
-        navigate('userprofile')
-    }
+        navigate('userprofile');
+    };
+
+    const handleLogout = () => {
+        setLogoutDialogOpen(true);
+    };
+
+    const handleLogoutConfirm = () => {
+        setLogoutDialogOpen(false);
+        // Implement logout logic here
+        console.log('User logged out');
+        navigate('/login'); // Redirect to login page after logout
+    };
+
+    const handleLogoutCancel = () => {
+        setLogoutDialogOpen(false);
+    };
+
+    const theme = createTheme({
+        palette: {
+            mode: darkMode ? 'dark' : 'light',
+            primary: {
+                main: '#3f51b5',
+            },
+            secondary: {
+                main: '#f50057',
+            },
+        },
+    });
 
     return (
-        <ThemeProvider theme={defaultTheme}>
+        <ThemeProvider theme={theme}>
             <Box sx={{ display: 'flex' }}>
                 <CssBaseline />
-                <AppBar position="absolute" open={open}>
+                <AppBar position="absolute" open={open} elevation={0}>
                     <Toolbar
                         sx={{
-                            pr: '24px', // keep right padding when drawer closed
+                            pr: '24px',
                         }}
                     >
                         <IconButton
@@ -115,7 +155,7 @@ const Layout = () => {
                                 ...(open && { display: 'none' }),
                             }}
                         >
-                            <MenuIcon />
+                            <Menu />
                         </IconButton>
                         <Typography
                             component="h1"
@@ -124,14 +164,13 @@ const Layout = () => {
                             noWrap
                             sx={{ flexGrow: 1 }}
                         >
-                            {/*print path name as the title name*/}
-                            <>{getPageTitle(location.pathname)}</>
+                            {getPageTitle(location.pathname)}
                         </Typography>
+                        <IconButton color="inherit" onClick={toggleDarkMode}>
+                            {darkMode ? <Brightness7 /> : <Brightness4 />}
+                        </IconButton>
                         <IconButton color="inherit" onClick={handleClick}>
-                            {/*this is button for user page*/}
-                            <Badge color="secondary" >
-                                <AccountCircleIcon />
-                            </Badge>
+                            <AccountCircle />
                         </IconButton>
                     </Toolbar>
                 </AppBar>
@@ -145,13 +184,23 @@ const Layout = () => {
                         }}
                     >
                         <IconButton onClick={toggleDrawer}>
-                            <ChevronLeftIcon />
+                            <ChevronLeft />
                         </IconButton>
                     </Toolbar>
                     <Divider />
-                    <List component="nav">
+                    <List component="nav" sx={{ flexGrow: 1 }}>
                         {mainListItems}
+                        <Divider sx={{ my: 1 }} />
                         {secondaryListItems}
+                    </List>
+                    <Divider />
+                    <List>
+                        <ListItem button onClick={handleLogout}>
+                            <ListItemIcon>
+                                <ExitToApp />
+                            </ListItemIcon>
+                            <ListItemText primary="Logout" />
+                        </ListItem>
                     </List>
                 </Drawer>
                 <Box
@@ -171,8 +220,29 @@ const Layout = () => {
                     <Copyright sx={{ pt: 4 }} />
                 </Box>
             </Box>
+            <Dialog
+                open={logoutDialogOpen}
+                onClose={handleLogoutCancel}
+                aria-labelledby="alert-dialog-title"
+                aria-describedby="alert-dialog-description"
+            >
+                <DialogTitle id="alert-dialog-title">
+                    {"Confirm Logout"}
+                </DialogTitle>
+                <DialogContent>
+                    <DialogContentText id="alert-dialog-description">
+                        Are you sure you want to log out?
+                    </DialogContentText>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={handleLogoutCancel}>Cancel</Button>
+                    <Button onClick={handleLogoutConfirm} autoFocus>
+                        Logout
+                    </Button>
+                </DialogActions>
+            </Dialog>
         </ThemeProvider>
     );
 };
 
-export default Layout;
+export default EnhancedLayout;

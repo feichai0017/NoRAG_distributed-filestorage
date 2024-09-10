@@ -3,12 +3,8 @@ import ListItemButton from '@mui/material/ListItemButton';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 import ListSubheader from '@mui/material/ListSubheader';
-import DashboardIcon from '@mui/icons-material/Dashboard';
-import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
-import PaymentIcon from '@mui/icons-material/Payment';
-import BarChartIcon from '@mui/icons-material/BarChart';
-import AssignmentIcon from '@mui/icons-material/Assignment';
-import {NavLink} from "react-router-dom";
+import { Dashboard, CloudUpload, Search, Folder, Assignment } from '@mui/icons-material';
+import { NavLink } from "react-router-dom";
 
 const activeStyle = {
     textDecoration: "none",
@@ -18,6 +14,11 @@ const activeStyle = {
         '& .MuiListItemIcon-root': {
             color: 'inherit',
         }
+    },
+    transition: 'all 0.3s',
+    '&:hover': {
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
+        transform: 'translateX(5px)',
     }
 };
 
@@ -25,27 +26,27 @@ export const mainListItems = (
     <React.Fragment>
         <ListItemButton component={NavLink} to="/" sx={activeStyle}>
             <ListItemIcon>
-                <DashboardIcon />
+                <Dashboard />
             </ListItemIcon>
             <ListItemText primary="Dashboard" />
         </ListItemButton>
         <ListItemButton component={NavLink} to="/upload" sx={activeStyle}>
             <ListItemIcon>
-                <AttachMoneyIcon/>
+                <CloudUpload />
             </ListItemIcon>
             <ListItemText primary="Upload" />
         </ListItemButton>
         <ListItemButton component={NavLink} to="/queryfile" sx={activeStyle}>
             <ListItemIcon>
-                <PaymentIcon />
+                <Search />
             </ListItemIcon>
-            <ListItemText primary="QueryFile" />
+            <ListItemText primary="Query File" />
         </ListItemButton>
         <ListItemButton component={NavLink} to="/userfiles" sx={activeStyle}>
             <ListItemIcon>
-                <BarChartIcon />
+                <Folder />
             </ListItemIcon>
-            <ListItemText primary="UserFiles" />
+            <ListItemText primary="User Files" />
         </ListItemButton>
     </React.Fragment>
 );
@@ -55,21 +56,21 @@ export const secondaryListItems = (
         <ListSubheader component="div" inset>
             Saved reports
         </ListSubheader>
-        <ListItemButton>
+        <ListItemButton sx={activeStyle}>
             <ListItemIcon>
-                <AssignmentIcon />
+                <Assignment />
             </ListItemIcon>
             <ListItemText primary="Current month" />
         </ListItemButton>
-        <ListItemButton>
+        <ListItemButton sx={activeStyle}>
             <ListItemIcon>
-                <AssignmentIcon />
+                <Assignment />
             </ListItemIcon>
             <ListItemText primary="Last quarter" />
         </ListItemButton>
-        <ListItemButton>
+        <ListItemButton sx={activeStyle}>
             <ListItemIcon>
-                <AssignmentIcon />
+                <Assignment />
             </ListItemIcon>
             <ListItemText primary="Year-end sale" />
         </ListItemButton>
