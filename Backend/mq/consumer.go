@@ -4,8 +4,8 @@ import "log"
 
 var done chan bool
 
-// StartConsumer: Start a consumer and monitor the message queue
-func StartConsumer(qName, cName string, callback func(msg []byte) bool) {
+// StartConsume: Start a consumer and monitor the message queue
+func StartConsume(qName, cName string, callback func(msg []byte) bool) {
 
 	// Start consumer
 	msgs, err := channel.Consume(

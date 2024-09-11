@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # 设置工作目录
-WORK_DIR="/Users/guochengsong/Documents/GitHub/cloud_distributed_file-system/Backend/"
+WORK_DIR="/usr/local/Distributed_system/cloud_distributed_storage/Backend/"
 cd "$WORK_DIR" || exit
 
 # 创建日志目录

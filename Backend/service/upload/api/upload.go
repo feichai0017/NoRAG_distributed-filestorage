@@ -112,11 +112,11 @@ func UploadHandler(c *gin.Context) {
 		fileMeta.Location = cephPath
 	case "s3":
 		// save file into s3
-		// 文件写入OSS存储
+		// 文件写入S3存储
 		s3Path := cfg.S3RootDir + fileMeta.FileSha1
-		// 判断写入OSS为同步还是异步
+		// 判断写入S3为同步还是异步
 		if !cfg.AsyncTransferEnable {
-			// TODO: 设置oss中的文件名，方便指定文件名下载
+			// TODO: 设置s3中的文件名，方便指定文件名下载
 			s3Client := s3.GetS3Client()
 			bucketBasics := s3.BucketBasics{S3Client: s3Client}
 			err = bucketBasics.UploadFile(cfg.S3_BUCKET_NAME, s3Path, newFile)
