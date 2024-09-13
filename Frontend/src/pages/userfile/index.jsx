@@ -1,14 +1,31 @@
-// eslint-disable-next-line no-unused-vars
 import React, { useState, useEffect } from 'react';
 import { Download, Trash2, FileText, AlertCircle } from 'lucide-react';
 import { deleteAPI, downloadAPI, queryAllAPI } from "@/api/files.jsx";
 import { getToken } from "@/utils/index.jsx";
+import { ThemeProvider, useTheme } from '@mui/material/styles';
+import {
+    Box,
+    Typography,
+    TextField,
+    Button,
+    Table,
+    TableBody,
+    TableCell,
+    TableContainer,
+    TableHead,
+    TableRow,
+    Paper,
+    IconButton,
+    CircularProgress,
+    Alert,
+} from '@mui/material';
 
 const EnhancedUserFiles = () => {
     const [limit, setLimit] = useState(10);
     const [files, setFiles] = useState([]);
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const theme = useTheme();
 
     const handleInputChange = (e) => {
         setLimit(e.target.value);
@@ -66,100 +83,128 @@ const EnhancedUserFiles = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-100 to-gray-200 py-12 px-4 sm:px-6 lg:px-8">
-            <div className="max-w-7xl mx-auto bg-white rounded-2xl shadow-xl overflow-hidden">
-                <div className="p-8">
-                    <h1 className="text-3xl font-bold mb-6 text-center bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-purple-500">User Uploaded Files</h1>
+        <ThemeProvider theme={theme}>
+            <Box sx={{
+                minHeight: '100vh',
+                bgcolor: 'background.default',
+                py: 6,
+                px: { xs: 2, sm: 3, md: 4 },
+            }}>
+                <Paper elevation={24} sx={{
+                    maxWidth: 'xl',
+                    mx: 'auto',
+                    borderRadius: 4,
+                    overflow: 'hidden',
+                }}>
+                    <Box sx={{ p: 4 }}>
+                        <Typography variant="h4" component="h1" align="center" sx={{
+                            mb: 3,
+                            fontWeight: 'bold',
+                            background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
+                            WebkitBackgroundClip: 'text',
+                            WebkitTextFillColor: 'transparent'
+                        }}>
+                            User Uploaded Files
+                        </Typography>
 
-                    <form id="queryForm" className="mb-8">
-                        <label htmlFor="limit" className="block text-sm font-medium text-gray-700 mb-2">Number of Files:</label>
-                        <div className="flex items-center">
-                            <input
-                                type="number"
-                                id="limit"
-                                name="limit"
-                                min="1"
-                                max="100"
-                                value={limit}
-                                onChange={handleInputChange}
-                                required
-                                className="flex-1 px-4 py-2 border border-gray-300 rounded-l-md focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                            />
-                            <button
-                                onClick={fetchFiles}
-                                className="px-4 py-2 border border-transparent text-sm font-medium rounded-r-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                            >
-                                Fetch Files
-                            </button>
-                        </div>
-                    </form>
+                        <Box component="form" sx={{ mb: 4 }}>
+                            <Typography variant="subtitle1" sx={{ mb: 1 }}>
+                                Number of Files:
+                            </Typography>
+                            <Box sx={{ display: 'flex' }}>
+                                <TextField
+                                    type="number"
+                                    id="limit"
+                                    name="limit"
+                                    inputProps={{ min: 1, max: 100 }}
+                                    value={limit}
+                                    onChange={handleInputChange}
+                                    required
+                                    sx={{ flexGrow: 1, mr: 1 }}
+                                />
+                                <Button
+                                    onClick={fetchFiles}
+                                    variant="contained"
+                                    sx={{
+                                        background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
+                                        color: 'white',
+                                    }}
+                                >
+                                    Fetch Files
+                                </Button>
+                            </Box>
+                        </Box>
 
-                    {error && (
-                        <div className="mb-4 p-4 bg-red-100 border-l-4 border-red-500 rounded-r-md">
-                            <div className="flex items-center">
-                                <AlertCircle className="h-5 w-5 text-red-500 mr-2" />
-                                <p className="text-red-700">{error}</p>
-                            </div>
-                        </div>
-                    )}
+                        {error && (
+                            <Alert severity="error" icon={<AlertCircle />} sx={{ mb: 2 }}>
+                                {error}
+                            </Alert>
+                        )}
 
-                    {isLoading ? (
-                        <div className="flex justify-center items-center h-64">
-                            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-                        </div>
-                    ) : (
-                        <div className="overflow-x-auto">
-                            <table className="min-w-full divide-y divide-gray-200">
-                                <thead className="bg-gray-50">
-                                <tr>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">File Name</th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">File Hash</th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">File Size (Bytes)</th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Upload Time</th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                                </tr>
-                                </thead>
-                                <tbody className="bg-white divide-y divide-gray-200">
-                                {files.map((fileMeta, index) => (
-                                    <tr key={index} className="hover:bg-gray-50 transition-colors duration-200">
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="flex items-center">
-                                                <FileText className="h-5 w-5 text-gray-400 mr-2" />
-                                                <span className="text-sm font-medium text-gray-900">{fileMeta.FileName}</span>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className="text-sm text-gray-500">{fileMeta.FileHash}</span>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className="text-sm text-gray-500">{fileMeta.FileSize}</span>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className="text-sm text-gray-500">{fileMeta.UploadAt}</span>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                            <button
-                                                onClick={() => handleDownload(fileMeta.FileHash)}
-                                                className="text-blue-600 hover:text-blue-900 mr-4 transition-colors duration-200"
-                                            >
-                                                <Download className="h-5 w-5" />
-                                            </button>
-                                            <button
-                                                onClick={() => handleDelete(fileMeta.FileHash)}
-                                                className="text-red-600 hover:text-red-900 transition-colors duration-200"
-                                            >
-                                                <Trash2 className="h-5 w-5" />
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    )}
-                </div>
-            </div>
-        </div>
+                        {isLoading ? (
+                            <Box sx={{ display: 'flex', justifyContent: 'center', my: 8 }}>
+                                <CircularProgress />
+                            </Box>
+                        ) : (
+                            <TableContainer component={Paper} sx={{ maxHeight: 440 }}>
+                                <Table stickyHeader aria-label="user files table">
+                                    <TableHead>
+                                        <TableRow>
+                                            <TableCell>File Name</TableCell>
+                                            <TableCell>File Hash</TableCell>
+                                            <TableCell>File Size (Bytes)</TableCell>
+                                            <TableCell>Upload Time</TableCell>
+                                            <TableCell>Actions</TableCell>
+                                        </TableRow>
+                                    </TableHead>
+                                    <TableBody>
+                                        {files.map((fileMeta, index) => (
+                                            <TableRow key={index} hover>
+                                                <TableCell>
+                                                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                                        <FileText sx={{ mr: 1, color: 'text.secondary' }} />
+                                                        <Typography variant="body2">{fileMeta.FileName}</Typography>
+                                                    </Box>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                                                        {fileMeta.FileHash}
+                                                    </Typography>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                                                        {fileMeta.FileSize}
+                                                    </Typography>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                                                        {fileMeta.UploadAt}
+                                                    </Typography>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <IconButton
+                                                        onClick={() => handleDownload(fileMeta.FileHash)}
+                                                        color="primary"
+                                                    >
+                                                        <Download />
+                                                    </IconButton>
+                                                    <IconButton
+                                                        onClick={() => handleDelete(fileMeta.FileHash)}
+                                                        color="error"
+                                                    >
+                                                        <Trash2 />
+                                                    </IconButton>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </TableContainer>
+                        )}
+                    </Box>
+                </Paper>
+            </Box>
+        </ThemeProvider>
     );
 };
 

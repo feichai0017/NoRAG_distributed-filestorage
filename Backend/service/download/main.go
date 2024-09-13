@@ -28,7 +28,11 @@ func startRPCService() {
 	// 初始化dbproxy client
 	dbproxy.Init(service)
 
-	dlProto.RegisterDownloadServiceHandler(service.Server(), new(dlRpc.Download))
+	err := dlProto.RegisterDownloadServiceHandler(service.Server(), new(dlRpc.Download))
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 	if err := service.Run(); err != nil {
 		fmt.Println(err)
 	}

@@ -1,16 +1,48 @@
-// eslint-disable-next-line no-unused-vars
+"use client"
+
 import React, { useState } from 'react';
 import { Search, FileText, AlertCircle } from 'lucide-react';
-import { queryAPI } from "@/api/files.jsx";
+import { queryAPI } from "@/api/files";
+import {
+    Box,
+    Typography,
+    TextField,
+    Button,
+    List,
+    ListItem,
+    ListItemIcon,
+    ListItemText,
+    Paper,
+    Alert,
+    InputAdornment,
+    Autocomplete,
+    useTheme
+} from '@mui/material';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const EnhancedQueryFile = () => {
+    const theme = useTheme();
     const [filehash, setFilehash] = useState('');
     const [results, setResults] = useState([]);
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [searchHistory] = useState(['example1', 'example2', 'example3']);
+    const [suggestions] = useState(['suggestion1', 'suggestion2', 'suggestion3']);
 
-    const handleInputChange = (e) => {
-        setFilehash(e.target.value);
+    // 固定的搜索统计数据
+    const stats = [
+        { name: 'Mon', searches: 4 },
+        { name: 'Tue', searches: 7 },
+        { name: 'Wed', searches: 2 },
+        { name: 'Thu', searches: 5 },
+        { name: 'Fri', searches: 9 },
+        { name: 'Sat', searches: 3 },
+        { name: 'Sun', searches: 6 },
+    ];
+
+    const handleInputChange = (event, newValue) => {
+        setFilehash(newValue);
     };
 
     const handleFormSubmit = async (e) => {
@@ -31,66 +63,215 @@ const EnhancedQueryFile = () => {
         } finally {
             setIsLoading(false);
         }
-    }
+    };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center p-4">
-            <div className="w-full max-w-2xl bg-white rounded-2xl shadow-xl overflow-hidden transition-all duration-300 ease-in-out transform hover:scale-105">
-                <div className="p-8">
-                    <h1 className="text-3xl font-bold mb-6 text-center bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-purple-500">File Search</h1>
-                    <form onSubmit={handleFormSubmit} className="space-y-6">
-                        <div className="relative">
-                            <input
-                                type="text"
-                                name="filehash"
-                                placeholder="Enter filehash"
-                                value={filehash}
-                                onChange={handleInputChange}
-                                required
-                                className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 transition-all duration-300 ease-in-out pl-12"
-                            />
-                            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                        </div>
-                        <button
+        <Box
+            sx={{
+                minHeight: '100vh',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'flex-start',
+                p: 4,
+                bgcolor: 'background.default',
+                color: 'text.primary',
+            }}
+        >
+            <Paper
+                elevation={24}
+                sx={{
+                    width: '100%',
+                    maxWidth: 'md',
+                    borderRadius: 4,
+                    overflow: 'hidden',
+                    transition: 'all 0.3s ease-in-out',
+                    '&:hover': {
+                        transform: 'scale(1.02)',
+                    },
+                    bgcolor: 'background.paper',
+                }}
+            >
+                <Box sx={{ p: 4 }}>
+                    <Typography
+                        variant="h4"
+                        component="h1"
+                        align="center"
+                        sx={{
+                            mb: 3,
+                            fontWeight: 'bold',
+                            background: theme.palette.mode === 'dark'
+                                ? 'linear-gradient(45deg, #90caf9 30%, #64b5f6 90%)'
+                                : 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
+                            WebkitBackgroundClip: 'text',
+                            WebkitTextFillColor: 'transparent'
+                        }}
+                    >
+                        File Search
+                    </Typography>
+                    <form onSubmit={handleFormSubmit}>
+                        <Autocomplete
+                            freeSolo
+                            options={[...searchHistory, ...suggestions]}
+                            renderInput={(params) => (
+                                <TextField
+                                    {...params}
+                                    fullWidth
+                                    variant="outlined"
+                                    placeholder="Enter filehash"
+                                    required
+                                    InputProps={{
+                                        ...params.InputProps,
+                                        startAdornment: (
+                                            <InputAdornment position="start">
+                                                <Search color={theme.palette.text.secondary} />
+                                            </InputAdornment>
+                                        ),
+                                    }}
+                                />
+                            )}
+                            value={filehash}
+                            onChange={handleInputChange}
+                            sx={{ mb: 3 }}
+                        />
+                        <Button
                             type="submit"
+                            fullWidth
+                            variant="contained"
                             disabled={isLoading}
-                            className="w-full px-6 py-3 border border-transparent text-base font-medium rounded-lg text-white bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
+                            sx={{
+                                py: 1.5,
+                                background: theme.palette.mode === 'dark'
+                                    ? 'linear-gradient(45deg, #90caf9 30%, #64b5f6 90%)'
+                                    : 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
+                                color: theme.palette.mode === 'dark' ? 'text.primary' : 'white',
+                                '&:hover': {
+                                    background: theme.palette.mode === 'dark'
+                                        ? 'linear-gradient(45deg, #82b1ff 30%, #448aff 90%)'
+                                        : 'linear-gradient(45deg, #1e88e5 30%, #1cb5e0 90%)',
+                                },
+                            }}
                         >
                             {isLoading ? 'Searching...' : 'Search'}
-                        </button>
+                        </Button>
                     </form>
 
-                    {error && (
-                        <div className="mt-6 p-4 bg-red-100 border-l-4 border-red-500 rounded-r-lg">
-                            <div className="flex items-center">
-                                <AlertCircle className="h-6 w-6 text-red-500 mr-2" />
-                                <p className="text-red-700">{error}</p>
-                            </div>
-                        </div>
-                    )}
+                    <AnimatePresence>
+                        {error && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -20 }}
+                                transition={{ duration: 0.3 }}
+                            >
+                                <Alert
+                                    severity="error"
+                                    icon={<AlertCircle />}
+                                    sx={{ mt: 3 }}
+                                >
+                                    {error}
+                                </Alert>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
 
-                    {results.length > 0 && (
-                        <div className="mt-8">
-                            <h2 className="text-2xl font-semibold mb-4 text-gray-800">Search Results</h2>
-                            <ul className="space-y-4">
-                                {results.map((result, index) => (
-                                    <li key={index} className="bg-gray-50 rounded-lg p-4 shadow transition-all duration-300 ease-in-out hover:shadow-md">
-                                        <div className="flex items-start">
-                                            <FileText className="h-6 w-6 text-blue-500 mr-3 mt-1" />
-                                            <div>
-                                                <p className="font-medium text-gray-800">{result.file_name}</p>
-                                                <p className="text-sm text-gray-600">Size: {result.file_size}</p>
-                                                <p className="text-sm text-gray-600">Location: {result.location}</p>
-                                            </div>
-                                        </div>
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-                    )}
-                </div>
-            </div>
-        </div>
+                    <AnimatePresence>
+                        {results.length > 0 && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -20 }}
+                                transition={{ duration: 0.3 }}
+                            >
+                                <Box sx={{ mt: 4 }}>
+                                    <Typography variant="h5" component="h2" sx={{ mb: 2, fontWeight: 'medium' }}>
+                                        Search Results
+                                    </Typography>
+                                    <List>
+                                        {results.map((result, index) => (
+                                            <motion.div
+                                                key={index}
+                                                initial={{ opacity: 0, x: -20 }}
+                                                animate={{ opacity: 1, x: 0 }}
+                                                transition={{ duration: 0.3, delay: index * 0.1 }}
+                                            >
+                                                <ListItem
+                                                    sx={{
+                                                        bgcolor: 'background.paper',
+                                                        borderRadius: 2,
+                                                        mb: 2,
+                                                        transition: 'all 0.3s ease-in-out',
+                                                        '&:hover': {
+                                                            boxShadow: 3,
+                                                        },
+                                                    }}
+                                                >
+                                                    <ListItemIcon>
+                                                        <FileText color={theme.palette.primary.main} />
+                                                    </ListItemIcon>
+                                                    <ListItemText
+                                                        primary={result.file_name}
+                                                        secondary={
+                                                            <>
+                                                                <Typography component="span" variant="body2" color="text.primary">
+                                                                    Size: {result.file_size}
+                                                                </Typography>
+                                                                <br />
+                                                                <Typography component="span" variant="body2" color="text.primary">
+                                                                    Location: {result.location}
+                                                                </Typography>
+                                                            </>
+                                                        }
+                                                    />
+                                                </ListItem>
+                                            </motion.div>
+                                        ))}
+                                    </List>
+                                </Box>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </Box>
+            </Paper>
+
+            <Paper
+                elevation={24}
+                sx={{
+                    width: '100%',
+                    maxWidth: 'md',
+                    borderRadius: 4,
+                    overflow: 'hidden',
+                    mt: 4,
+                    p: 4,
+                    transition: 'all 0.3s ease-in-out',
+                    '&:hover': {
+                        transform: 'scale(1.02)',
+                    },
+                    bgcolor: 'background.paper',
+                }}
+            >
+                <Typography variant="h5" component="h2" sx={{ mb: 2, fontWeight: 'medium', color: 'text.primary' }}>
+                    Search Statistics
+                </Typography>
+                <Box sx={{ height: 300 }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={stats}>
+                            <CartesianGrid strokeDasharray="3 3" stroke={theme.palette.divider} />
+                            <XAxis dataKey="name" stroke={theme.palette.text.primary} />
+                            <YAxis stroke={theme.palette.text.primary} />
+                            <Tooltip
+                                contentStyle={{
+                                    backgroundColor: theme.palette.background.paper,
+                                    color: theme.palette.text.primary,
+                                    border: `1px solid ${theme.palette.divider}`,
+                                }}
+                            />
+                            <Line type="monotone" dataKey="searches" stroke={theme.palette.primary.main} strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 8 }} />
+                        </LineChart>
+                    </ResponsiveContainer>
+                </Box>
+            </Paper>
+        </Box>
     );
 };
 

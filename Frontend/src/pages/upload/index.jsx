@@ -1,7 +1,7 @@
-// eslint-disable-next-line no-unused-vars
 import React, { useState, useEffect, useRef } from 'react';
 import { Upload, X, File, CheckCircle } from 'lucide-react';
-import axios from 'axios';
+import { ThemeProvider, useTheme } from '@mui/material/styles';
+import { Box, Typography, Button, Select, MenuItem, LinearProgress } from '@mui/material';
 import {
     cancelMultipartUploadAPI,
     completeMultipartUploadAPI,
@@ -18,14 +18,15 @@ const EnhancedFileUpload = () => {
     const [uploadProgress, setUploadProgress] = useState(0);
     const [isUploading, setIsUploading] = useState(false);
     const [uploadComplete, setUploadComplete] = useState(false);
-    const cancelTokenSource = useRef(null);
+    const abortController = useRef(new AbortController());
     const [uploadId, setUploadId] = useState(null);
     const [dragActive, setDragActive] = useState(false);
+    const theme = useTheme();
 
     useEffect(() => {
         return () => {
-            if (cancelTokenSource.current) {
-                cancelTokenSource.current.cancel('Component unmounted');
+            if (abortController.current) {
+                abortController.current.abort();
             }
         };
     }, []);
@@ -66,7 +67,7 @@ const EnhancedFileUpload = () => {
         setIsUploading(true);
         setUploadProgress(0);
         setUploadComplete(false);
-        cancelTokenSource.current = axios.CancelToken.source();
+        abortController.current = new AbortController();
 
         const formData = new FormData();
         formData.append('file', file);
@@ -76,7 +77,7 @@ const EnhancedFileUpload = () => {
             let response;
             if (uploadMode === 'normal' || file.size <= 5 * 1024 * 1024) {
                 response = await uploadAPI(formData, {
-                    cancelToken: cancelTokenSource.current.token,
+                    signal: abortController.current.signal,
                     onUploadProgress: (progressEvent) => {
                         const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
                         setUploadProgress(percentCompleted);
@@ -88,7 +89,7 @@ const EnhancedFileUpload = () => {
             console.log(response.data);
             setUploadComplete(true);
         } catch (error) {
-            if (axios.isCancel(error)) {
+            if (error.name === 'AbortError') {
                 console.log('Upload cancelled');
             } else {
                 console.error('Upload failed:', error);
@@ -115,7 +116,7 @@ const EnhancedFileUpload = () => {
             chunkFormData.append('index', i);
 
             await uploadPartAPI(chunkFormData, {
-                cancelToken: cancelTokenSource.current.token,
+                signal: abortController.current.signal,
                 onUploadProgress: (progressEvent) => {
                     const percentCompleted = Math.round(((i * chunkSize + progressEvent.loaded) * 100) / file.size);
                     setUploadProgress(percentCompleted);
@@ -132,8 +133,8 @@ const EnhancedFileUpload = () => {
     };
 
     const handleCancelUpload = async () => {
-        if (cancelTokenSource.current) {
-            cancelTokenSource.current.cancel('Upload cancelled by user');
+        if (abortController.current) {
+            abortController.current.abort();
         }
         if (uploadId) {
             await cancelMultipartUploadAPI({ uploadid: uploadId });
@@ -170,91 +171,149 @@ const EnhancedFileUpload = () => {
     };
 
     return (
-        <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-100 to-gray-200">
-            <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden transition-all duration-300 ease-in-out transform hover:scale-105">
-                <div className="p-8">
-                    <h2 className="text-3xl font-bold mb-6 text-center bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-purple-500">File Upload</h2>
-                    {!file ? (
-                        <div
-                            className={`border-2 border-dashed rounded-xl p-8 text-center transition-all duration-300 ease-in-out ${dragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300'}`}
-                            onDragEnter={handleDrag}
-                            onDragLeave={handleDrag}
-                            onDragOver={handleDrag}
-                            onDrop={handleDrop}
-                        >
-                            <Upload className="mx-auto h-16 w-16 text-gray-400 mb-4" />
-                            <p className="text-lg text-gray-600 mb-4">Drag and drop your file here, or</p>
-                            <label htmlFor="fileInput" className="cursor-pointer inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-full text-white bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-300 ease-in-out">
-                                Choose File
-                                <input
-                                    id="fileInput"
-                                    type="file"
-                                    className="sr-only"
-                                    onChange={handleFileChange}
-                                    accept=".pdf,.txt,.doc,.docx"
-                                />
-                            </label>
-                            <p className="mt-4 text-sm text-gray-500">Supported formats: PDF, TXT, DOC, DOCX</p>
-                        </div>
-                    ) : (
-                        <form onSubmit={handleUpload} className="space-y-6">
-                            <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
-                                <File className="h-8 w-8 text-blue-500" />
-                                <span className="text-lg font-medium text-gray-700 truncate flex-1">{fileName}</span>
-                            </div>
-                            <select
-                                value={uploadMode}
-                                onChange={(e) => setUploadMode(e.target.value)}
-                                className="block w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 transition-all duration-300 ease-in-out"
+        <ThemeProvider theme={theme}>
+            <Box
+                sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    minHeight: '100vh',
+                    bgcolor: 'background.default',
+                    color: 'text.primary',
+                }}
+            >
+                <Box
+                    sx={{
+                        width: '100%',
+                        maxWidth: 'md',
+                        bgcolor: 'background.paper',
+                        borderRadius: 4,
+                        boxShadow: 24,
+                        overflow: 'hidden',
+                        transition: 'all 0.3s ease-in-out',
+                        '&:hover': {
+                            transform: 'scale(1.05)',
+                        },
+                    }}
+                >
+                    <Box sx={{ p: 4 }}>
+                        <Typography variant="h4" component="h2" align="center" sx={{ mb: 3, background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                            File Upload
+                        </Typography>
+                        {!file ? (
+                            <Box
+                                sx={{
+                                    border: 2,
+                                    borderStyle: 'dashed',
+                                    borderRadius: 2,
+                                    p: 4,
+                                    textAlign: 'center',
+                                    transition: 'all 0.3s ease-in-out',
+                                    borderColor: dragActive ? 'primary.main' : 'grey.300',
+                                    bgcolor: dragActive ? 'action.hover' : 'background.paper',
+                                }}
+                                onDragEnter={handleDrag}
+                                onDragLeave={handleDrag}
+                                onDragOver={handleDrag}
+                                onDrop={handleDrop}
                             >
-                                <option value="normal">Normal Upload</option>
-                                <option value="multipart">Multipart Upload</option>
-                            </select>
-                            <div className="flex space-x-4">
-                                <button
-                                    type="submit"
-                                    className={`flex-1 px-6 py-3 border border-transparent text-base font-medium rounded-full text-white bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-300 ease-in-out ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                    disabled={isUploading}
+                                <Upload sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+                                <Typography variant="h6" sx={{ mb: 2 }}>Drag and drop your file here, or</Typography>
+                                <Button
+                                    component="label"
+                                    variant="contained"
+                                    sx={{
+                                        background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
+                                        color: 'white',
+                                        borderRadius: 50,
+                                    }}
                                 >
-                                    {isUploading ? 'Uploading...' : 'Upload'}
-                                </button>
-                                {isUploading && (
-                                    <button
-                                        type="button"
-                                        onClick={handleCancelUpload}
-                                        className="px-4 py-3 border-2 border-gray-300 text-base font-medium rounded-full text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-300 ease-in-out"
+                                    Choose File
+                                    <input
+                                        type="file"
+                                        hidden
+                                        onChange={handleFileChange}
+                                        accept=".pdf,.txt,.doc,.docx"
+                                    />
+                                </Button>
+                                <Typography variant="body2" sx={{ mt: 2, color: 'text.secondary' }}>
+                                    Supported formats: PDF, TXT, DOC, DOCX
+                                </Typography>
+                            </Box>
+                        ) : (
+                            <form onSubmit={handleUpload}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', p: 2, bgcolor: 'action.hover', borderRadius: 2, mb: 2 }}>
+                                    <File sx={{ fontSize: 32, color: 'primary.main', mr: 2 }} />
+                                    <Typography variant="body1" sx={{ flexGrow: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                        {fileName}
+                                    </Typography>
+                                </Box>
+                                <Select
+                                    value={uploadMode}
+                                    onChange={(e) => setUploadMode(e.target.value)}
+                                    fullWidth
+                                    sx={{ mb: 2 }}
+                                >
+                                    <MenuItem value="normal">Normal Upload</MenuItem>
+                                    <MenuItem value="multipart">Multipart Upload</MenuItem>
+                                </Select>
+                                <Box sx={{ display: 'flex', gap: 2 }}>
+                                    <Button
+                                        type="submit"
+                                        variant="contained"
+                                        fullWidth
+                                        disabled={isUploading}
+                                        sx={{
+                                            background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
+                                            color: 'white',
+                                            borderRadius: 50,
+                                        }}
                                     >
-                                        <X className="h-5 w-5" />
-                                    </button>
-                                )}
-                            </div>
-                        </form>
-                    )}
-                    {(isUploading || uploadComplete) && (
-                        <div className="mt-6 space-y-4">
-                            <div className="relative pt-1">
-                                <div className="overflow-hidden h-2 text-xs flex rounded-full bg-blue-200">
-                                    <div
-                                        style={{ width: `${uploadProgress}%` }}
-                                        className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-300 ease-in-out"
-                                    ></div>
-                                </div>
-                            </div>
-                            <p className="text-sm text-gray-600 text-center">
-                                {uploadComplete ? (
-                                    <span className="flex items-center justify-center text-green-500">
-                    <CheckCircle className="h-5 w-5 mr-2" />
-                    Upload Complete
-                  </span>
-                                ) : (
-                                    <span className="font-semibold">{`${uploadProgress}% Uploaded`}</span>
-                                )}
-                            </p>
-                        </div>
-                    )}
-                </div>
-            </div>
-        </div>
+                                        {isUploading ? 'Uploading...' : 'Upload'}
+                                    </Button>
+                                    {isUploading && (
+                                        <Button
+                                            onClick={handleCancelUpload}
+                                            variant="outlined"
+                                            sx={{ borderRadius: 50 }}
+                                        >
+                                            <X />
+                                        </Button>
+                                    )}
+                                </Box>
+                            </form>
+                        )}
+                        {(isUploading || uploadComplete) && (
+                            <Box sx={{ mt: 3 }}>
+                                <LinearProgress
+                                    variant="determinate"
+                                    value={uploadProgress}
+                                    sx={{
+                                        height: 8,
+                                        borderRadius: 5,
+                                        bgcolor: 'action.hover',
+                                        '& .MuiLinearProgress-bar': {
+                                            borderRadius: 5,
+                                            background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
+                                        },
+                                    }}
+                                />
+                                <Typography variant="body2" align="center" sx={{ mt: 1 }}>
+                                    {uploadComplete ? (
+                                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'success.main' }}>
+                                            <CheckCircle sx={{ mr: 1 }} />
+                                            Upload Complete
+                                        </Box>
+                                    ) : (
+                                        `${uploadProgress}% Uploaded`
+                                    )}
+                                </Typography>
+                            </Box>
+                        )}
+                    </Box>
+                </Box>
+            </Box>
+        </ThemeProvider>
     );
 };
 
