@@ -146,3 +146,27 @@ func UpdateFileLocation(filehash string, fileaddr string) (res ExecResult) {
 	res.Msg = "Failed to update file location"
 	return
 }
+
+func UpdateUserFileDownloadCount(username, filehash string) (res ExecResult) {
+	stmt, err := mydb.DBConn().Prepare(
+		"UPDATE tbl_user_file SET download_count = download_count + 1 " +
+			"WHERE user_name = ? AND file_sha1 = ?")
+	if err != nil {
+		log.Println(err.Error())
+		res.Suc = false
+		res.Msg = err.Error()
+		return
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec(username, filehash)
+	if err != nil {
+		log.Println(err.Error())
+		res.Suc = false
+		res.Msg = err.Error()
+		return
+	}
+
+	res.Suc = true
+	return
+}

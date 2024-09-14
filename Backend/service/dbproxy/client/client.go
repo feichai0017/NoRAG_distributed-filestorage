@@ -116,6 +116,12 @@ func GetFileMetaList(limit int) (*orm.ExecResult, error) {
 	return parseBody(res), nil
 }
 
+func UpdateUserFileDownloadCount(username, filehash string) (*orm.ExecResult, error) {
+	uInfo, _ := json.Marshal([]interface{}{username, filehash})
+	res, err := execAction("/file/UpdateUserFileDownloadCount", uInfo)
+	return parseBody(res), err
+}
+
 // OnFileUploadFinished : when file upload finished, save file meta to db
 func OnFileUploadFinished(fmeta FileMeta) (*orm.ExecResult, error) {
 	uInfo, _ := json.Marshal([]interface{}{fmeta.FileSha1, fmeta.FileName, fmeta.FileSize, fmeta.Location})

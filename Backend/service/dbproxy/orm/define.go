@@ -58,13 +58,14 @@ type TablePermission struct {
 
 // TableUserFile 用户文件表结构
 type TableUserFile struct {
-	UserName    string
-	FileHash    string
-	FileName    string
-	FileSize    int64
-	UploadAt    string
-	LastUpdated string
-	Status      int
+	UserName       string
+	FileHash       string
+	FileName       string
+	FileSize       int64
+	UploadAt       string
+	LastUpdated    string
+	Status         int
+	DowndloadCount int
 }
 
 // ExecResult 执行结果

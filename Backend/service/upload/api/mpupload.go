@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"github.com/garyburd/redigo/redis"
 	"github.com/gin-gonic/gin"
+	"io"
 	"log"
 	"math"
 	"net/http"
@@ -222,4 +223,127 @@ func CompleteUploadHandler(c *gin.Context) {
 			"msg":  "OK",
 			"data": nil,
 		})
+}
+
+// CancelUploadHandler : 取消上传
+func CancelUploadHandler(c *gin.Context) {
+	uploadID := c.PostForm("uploadid")
+
+	rConn := rPool.RedisPool().Get()
+	defer rConn.Close()
+
+	// 删除文件分块
+	os.RemoveAll(config.TempPartRootDir + uploadID)
+
+	// 清除redis缓存
+	rConn.Do("DEL", "MP_"+uploadID)
+
+	c.JSON(http.StatusOK, gin.H{"code": 0, "msg": "OK", "data": nil})
+}
+
+// MultipartUploadStatusHandler : 查询分块上传的状态
+func MultipartUploadStatusHandler(c *gin.Context) {
+	uploadID := c.PostForm("uploadid")
+
+	rConn := rPool.RedisPool().Get()
+	defer rConn.Close()
+
+	data, err := redis.Values(rConn.Do("HGETALL", "MP_"+uploadID))
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{"code": -1, "msg": "查询失败", "data": nil})
+		return
+	}
+
+	ret := make(map[string]interface{})
+	for i := 0; i < len(data); i += 2 {
+		k := string(data[i].([]byte))
+		v := string(data[i+1].([]byte))
+		ret[k] = v
+	}
+	c.JSON(http.StatusOK, gin.H{"code": 0, "msg": "OK", "data": ret})
+}
+
+// MultiDownloadHandler : 断点续传下载
+func MultiDownloadHandler(c *gin.Context) {
+	filehash := c.Query("filehash")
+	username := c.Query("username")
+
+	// 检查用户对文件的访问权限
+	permResult, err := dbcli.CheckPermission(username, filehash)
+	if err != nil || !permResult.Suc {
+		c.JSON(http.StatusForbidden, gin.H{"code": -1, "msg": "Permission denied", "data": nil})
+		return
+	}
+
+	fmetaResult, err := dbcli.GetFileMeta(filehash)
+	if err != nil || !fmetaResult.Suc {
+		c.JSON(http.StatusNotFound, gin.H{"code": -1, "msg": "File not found", "data": nil})
+		return
+	}
+
+	fmeta := dbcli.ToTableFile(fmetaResult.Data)
+
+	f, err := os.Open(fmeta.FileAddr.String)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": -1, "msg": "File cannot be opened", "data": nil})
+		return
+	}
+	defer f.Close()
+
+	fileSize := fmeta.FileSize.Int64
+	fileName := fmeta.FileName.String
+
+	c.Header("Content-Type", "application/octet-stream")
+	c.Header("Content-Disposition", "attachment; filename="+fileName)
+	c.Header("Accept-Ranges", "bytes")
+
+	rangeHeader := c.GetHeader("Range")
+	if rangeHeader != "" {
+		var start, end int64
+		_, err := fmt.Sscanf(rangeHeader, "bytes=%d-%d", &start, &end)
+		if err != nil && err != io.EOF {
+			c.JSON(http.StatusBadRequest, gin.H{"code": -1, "msg": "Invalid range header", "data": nil})
+			return
+		}
+
+		if end == 0 {
+			end = fileSize - 1
+		}
+
+		if start > end || start < 0 || end >= fileSize {
+			c.Header("Content-Range", fmt.Sprintf("bytes */%d", fileSize))
+			c.Status(http.StatusRequestedRangeNotSatisfiable)
+			return
+		}
+
+		c.Header("Content-Range", fmt.Sprintf("bytes %d-%d/%d", start, end, fileSize))
+		c.Header("Content-Length", strconv.FormatInt(end-start+1, 10))
+		c.Status(http.StatusPartialContent)
+
+		_, err = f.Seek(start, 0)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"code": -1, "msg": "Failed to seek file", "data": nil})
+			return
+		}
+
+		_, err = io.CopyN(c.Writer, f, end-start+1)
+		if err != nil && err != io.EOF {
+			c.JSON(http.StatusInternalServerError, gin.H{"code": -1, "msg": "Failed to copy file content", "data": nil})
+			return
+		}
+	} else {
+		c.Header("Content-Length", strconv.FormatInt(fileSize, 10))
+		_, err = io.Copy(c.Writer, f)
+		if err != nil && err != io.EOF {
+			c.JSON(http.StatusInternalServerError, gin.H{"code": -1, "msg": "Failed to copy file content", "data": nil})
+			return
+		}
+	}
+
+	// 更新下载次数等信息
+	_, err = dbcli.UpdateUserFileDownloadCount(username, filehash)
+	if err != nil {
+		// 仅记录日志，不影响下载
+		log.Printf("Failed to update download count: %v", err)
+	}
 }

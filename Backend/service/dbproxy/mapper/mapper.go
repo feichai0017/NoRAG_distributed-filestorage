@@ -7,10 +7,11 @@ import (
 )
 
 var funcs = map[string]interface{}{
-	"/file/OnFileUploadFinished": orm.OnFileUploadFinished,
-	"/file/GetFileMeta":          orm.GetFileMeta,
-	"/file/GetFileMetaList":      orm.GetFileMetaList,
-	"/file/UpdateFileLocation":   orm.UpdateFileLocation,
+	"/file/OnFileUploadFinished":        orm.OnFileUploadFinished,
+	"/file/GetFileMeta":                 orm.GetFileMeta,
+	"/file/GetFileMetaList":             orm.GetFileMetaList,
+	"/file/UpdateFileLocation":          orm.UpdateFileLocation,
+	"/file/UpdateUserFileDownloadCount": orm.UpdateUserFileDownloadCount,
 
 	"/user/UserSignup":        orm.UserSignup,
 	"/user/UserLogin":         orm.UserLogin,

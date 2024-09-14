@@ -27,6 +27,9 @@ func Router() *gin.Engine {
 	r.POST("/file/mpupload/init", api.InitialMultipartUploadHandler)
 	r.POST("/file/mpupload/uppart", api.UploadPartHandler)
 	r.POST("/file/mpupload/complete", api.CompleteUploadHandler)
+	r.POST("file/mpupload/cancel", api.CancelUploadHandler)
+	r.POST("file/mpupload/status", api.MultipartUploadStatusHandler)
+	r.POST("file/mpupload/multi", api.MultiDownloadHandler)
 
 	return r
 }
