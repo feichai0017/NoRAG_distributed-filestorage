@@ -18,7 +18,15 @@ func Router() *gin.Engine {
 		// AllowCredentials: true,
 	}))
 
+	// 文件上传相关接口
 	r.POST("/file/upload", api.UploadHandler)
+	// 秒传接口
+	r.POST("/file/fastupload", api.TryFastUploadHandler)
+
+	// 分块上传接口
+	r.POST("/file/mpupload/init", api.InitialMultipartUploadHandler)
+	r.POST("/file/mpupload/uppart", api.UploadPartHandler)
+	r.POST("/file/mpupload/complete", api.CompleteUploadHandler)
 
 	return r
 }

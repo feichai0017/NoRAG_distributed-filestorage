@@ -1,7 +1,7 @@
 package orm
 
 import (
-	mydb "cloud_distributed_storage/Backend/database/mysql"
+	mydb "cloud_distributed_storage/Backend/service/dbproxy/conn"
 	"database/sql"
 	"log"
 	"time"
@@ -96,10 +96,75 @@ func UpdateToken(username, token string) (res ExecResult) {
 	return
 }
 
+func UserLogout(username string) (res ExecResult) {
+	stmt, err := mydb.DBConn().Prepare("DELETE FROM tbl_user_token WHERE user_name = ?")
+	if err != nil {
+		log.Println(err.Error())
+		res.Suc = false
+		res.Msg = err.Error()
+		return
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec(username)
+	if err != nil {
+		log.Println(err.Error())
+		res.Suc = false
+		res.Msg = err.Error()
+		return
+	}
+
+	res.Suc = true
+	res.Msg = "User logged out successfully"
+	return
+}
+
+func DeleteUserAccount(username string) (res ExecResult) {
+	tx, err := mydb.DBConn().Begin()
+	if err != nil {
+		log.Println(err.Error())
+		res.Suc = false
+		res.Msg = err.Error()
+		return
+	}
+
+	// Delete user files
+	_, err = tx.Exec("DELETE FROM tbl_user_file WHERE user_name = ?", username)
+	if err != nil {
+		tx.Rollback()
+		log.Println(err.Error())
+		res.Suc = false
+		res.Msg = err.Error()
+		return
+	}
+
+	// Delete user
+	_, err = tx.Exec("DELETE FROM tbl_user WHERE user_name = ?", username)
+	if err != nil {
+		tx.Rollback()
+		log.Println(err.Error())
+		res.Suc = false
+		res.Msg = err.Error()
+		return
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		log.Println(err.Error())
+		res.Suc = false
+		res.Msg = err.Error()
+		return
+	}
+
+	res.Suc = true
+	res.Msg = "User account deleted successfully"
+	return
+}
+
 func GetUserInfo(username string) (res ExecResult) {
 	user := TableUser{}
 	stmt, err := mydb.DBConn().Prepare(
-		"SELECT id, user_name, email, phone, email_validated, phone_validated, signup_at, last_active, profile, status " +
+		"SELECT user_name, email, phone, email_validated, phone_validated, signup_at, last_active, profile, status " +
 			"FROM tbl_user WHERE user_name = ? LIMIT 1")
 	if err != nil {
 		log.Println(err.Error())
@@ -110,8 +175,8 @@ func GetUserInfo(username string) (res ExecResult) {
 	defer stmt.Close()
 
 	err = stmt.QueryRow(username).Scan(
-		&user.ID, &user.Username, &user.Email, &user.Phone,
-		&user.EmailValidated, &user.PhoneValidated, &user.SignupAt,
+		&user.UserName, &user.Email, &user.Phone,
+		&user.SignupAt,
 		&user.LastActive, &user.Profile, &user.Status)
 	if err != nil {
 		if err == sql.ErrNoRows {

@@ -1,7 +1,7 @@
 package orm
 
 import (
-	mydb "cloud_distributed_storage/Backend/database/mysql"
+	mydb "cloud_distributed_storage/Backend/service/dbproxy/conn"
 	"database/sql"
 	"log"
 	"time"
@@ -32,9 +32,9 @@ func CreateRole(roleName string, description string) (res ExecResult) {
 }
 
 // GetRoleInfo 获取角色信息
-func GetRoleInfo(roleID int64) (res ExecResult) {
+func GetRoleInfo(roleName string) (res ExecResult) {
 	stmt, err := mydb.DBConn().Prepare(
-		"SELECT id, role_name, description, create_at, update_at FROM tbl_role WHERE id = ?")
+		"SELECT role_name, description, create_at, update_at FROM tbl_role WHERE role_name = ?")
 	if err != nil {
 		log.Println("Failed to prepare statement, err:", err.Error())
 		res.Suc = false
@@ -44,7 +44,7 @@ func GetRoleInfo(roleID int64) (res ExecResult) {
 	defer stmt.Close()
 
 	var role TableRole
-	err = stmt.QueryRow(roleID).Scan(&role.ID, &role.RoleName, &role.Description, &role.CreateAt, &role.UpdateAt)
+	err = stmt.QueryRow(roleName).Scan(&role.RoleName, &role.Description, &role.CreateAt, &role.UpdateAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			res.Suc = false
@@ -63,9 +63,9 @@ func GetRoleInfo(roleID int64) (res ExecResult) {
 }
 
 // UpdateRole 更新角色信息
-func UpdateRole(roleID int64, roleName, description string) (res ExecResult) {
+func UpdateRole(roleName, newRoleName, description string) (res ExecResult) {
 	stmt, err := mydb.DBConn().Prepare(
-		"UPDATE tbl_role SET role_name = ?, description = ?, update_at = ? WHERE id = ?")
+		"UPDATE tbl_role SET role_name = ?, description = ?, update_at = ? WHERE role_name = ?")
 	if err != nil {
 		log.Println("Failed to prepare statement, err:", err.Error())
 		res.Suc = false
@@ -74,7 +74,7 @@ func UpdateRole(roleID int64, roleName, description string) (res ExecResult) {
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(roleName, description, time.Now(), roleID)
+	_, err = stmt.Exec(newRoleName, description, time.Now(), roleName)
 	if err != nil {
 		log.Println("Failed to execute statement, err:", err.Error())
 		res.Suc = false
@@ -87,8 +87,8 @@ func UpdateRole(roleID int64, roleName, description string) (res ExecResult) {
 }
 
 // DeleteRole 删除角色
-func DeleteRole(roleID int64) (res ExecResult) {
-	stmt, err := mydb.DBConn().Prepare("DELETE FROM tbl_role WHERE id = ?")
+func DeleteRole(roleName string) (res ExecResult) {
+	stmt, err := mydb.DBConn().Prepare("DELETE FROM tbl_role WHERE role_name = ?")
 	if err != nil {
 		log.Println("Failed to prepare statement, err:", err.Error())
 		res.Suc = false
@@ -97,7 +97,7 @@ func DeleteRole(roleID int64) (res ExecResult) {
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(roleID)
+	_, err = stmt.Exec(roleName)
 	if err != nil {
 		log.Println("Failed to execute statement, err:", err.Error())
 		res.Suc = false
@@ -111,7 +111,7 @@ func DeleteRole(roleID int64) (res ExecResult) {
 
 // ListRoles 列出所有角色
 func ListRoles() (res ExecResult) {
-	rows, err := mydb.DBConn().Query("SELECT id, role_name, description, create_at, update_at FROM tbl_role")
+	rows, err := mydb.DBConn().Query("SELECT role_name, description, create_at, update_at FROM tbl_role")
 	if err != nil {
 		log.Println("Failed to execute query, err:", err.Error())
 		res.Suc = false
@@ -123,7 +123,7 @@ func ListRoles() (res ExecResult) {
 	var roles []TableRole
 	for rows.Next() {
 		var role TableRole
-		err := rows.Scan(&role.ID, &role.RoleName, &role.Description, &role.CreateAt, &role.UpdateAt)
+		err := rows.Scan(&role.RoleName, &role.Description, &role.CreateAt, &role.UpdateAt)
 		if err != nil {
 			log.Println("Failed to scan row, err:", err.Error())
 			continue
@@ -137,9 +137,9 @@ func ListRoles() (res ExecResult) {
 }
 
 // AssignRoleToUser 为用户分配角色
-func AssignRoleToUser(userID, roleID int64) (res ExecResult) {
+func AssignRoleToUser(userName, roleName string) (res ExecResult) {
 	stmt, err := mydb.DBConn().Prepare(
-		"INSERT INTO tbl_user_role (user_id, role_id, create_at) VALUES (?, ?, ?)")
+		"INSERT INTO tbl_user_role (user_name, role_name, create_at) VALUES (?, ?, ?)")
 	if err != nil {
 		log.Println("Failed to prepare statement, err:", err.Error())
 		res.Suc = false
@@ -148,7 +148,7 @@ func AssignRoleToUser(userID, roleID int64) (res ExecResult) {
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(userID, roleID, time.Now())
+	_, err = stmt.Exec(userName, roleName, time.Now())
 	if err != nil {
 		log.Println("Failed to execute statement, err:", err.Error())
 		res.Suc = false
@@ -161,8 +161,8 @@ func AssignRoleToUser(userID, roleID int64) (res ExecResult) {
 }
 
 // RemoveRoleFromUser 从用户移除角色
-func RemoveRoleFromUser(userID, roleID int64) (res ExecResult) {
-	stmt, err := mydb.DBConn().Prepare("DELETE FROM tbl_user_role WHERE user_id = ? AND role_id = ?")
+func RemoveRoleFromUser(userName, roleName string) (res ExecResult) {
+	stmt, err := mydb.DBConn().Prepare("DELETE FROM tbl_user_role WHERE user_name = ? AND role_name = ?")
 	if err != nil {
 		log.Println("Failed to prepare statement, err:", err.Error())
 		res.Suc = false
@@ -171,7 +171,7 @@ func RemoveRoleFromUser(userID, roleID int64) (res ExecResult) {
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(userID, roleID)
+	_, err = stmt.Exec(userName, roleName)
 	if err != nil {
 		log.Println("Failed to execute statement, err:", err.Error())
 		res.Suc = false
@@ -184,13 +184,13 @@ func RemoveRoleFromUser(userID, roleID int64) (res ExecResult) {
 }
 
 // GetUserRoles 获取用户的所有角色
-func GetUserRoles(userID int64) (res ExecResult) {
+func GetUserRoles(userName string) (res ExecResult) {
 	rows, err := mydb.DBConn().Query(`
-        SELECT r.id, r.role_name, r.description, r.create_at, r.update_at
+        SELECT r.role_name, r.description, r.create_at, r.update_at
         FROM tbl_role r
-        INNER JOIN tbl_user_role ur ON r.id = ur.role_id
-        WHERE ur.user_id = ?
-    `, userID)
+        INNER JOIN tbl_user_role ur ON r.role_name = ur.role_name
+        WHERE ur.user_name = ?
+    `, userName)
 	if err != nil {
 		log.Println("Failed to execute query, err:", err.Error())
 		res.Suc = false
@@ -202,7 +202,7 @@ func GetUserRoles(userID int64) (res ExecResult) {
 	var roles []TableRole
 	for rows.Next() {
 		var role TableRole
-		err := rows.Scan(&role.ID, &role.RoleName, &role.Description, &role.CreateAt, &role.UpdateAt)
+		err := rows.Scan(&role.RoleName, &role.Description, &role.CreateAt, &role.UpdateAt)
 		if err != nil {
 			log.Println("Failed to scan row, err:", err.Error())
 			continue
@@ -216,13 +216,13 @@ func GetUserRoles(userID int64) (res ExecResult) {
 }
 
 // GetRoleUsers 获取拥有特定角色的所有用户
-func GetRoleUsers(roleID int64) (res ExecResult) {
+func GetRoleUsers(roleName string) (res ExecResult) {
 	rows, err := mydb.DBConn().Query(`
-        SELECT u.id, u.user_name, u.email, u.phone, u.signup_at, u.last_active, u.status
+        SELECT u.user_name, u.email, u.phone, u.signup_at, u.last_active, u.status
         FROM tbl_user u
-        INNER JOIN tbl_user_role ur ON u.id = ur.user_id
-        WHERE ur.role_id = ?
-    `, roleID)
+        INNER JOIN tbl_user_role ur ON u.user_name = ur.user_name
+        WHERE ur.role_name = ?
+    `, roleName)
 	if err != nil {
 		log.Println("Failed to execute query, err:", err.Error())
 		res.Suc = false
@@ -234,7 +234,7 @@ func GetRoleUsers(roleID int64) (res ExecResult) {
 	var users []TableUser
 	for rows.Next() {
 		var user TableUser
-		err := rows.Scan(&user.ID, &user.Username, &user.Email, &user.Phone, &user.SignupAt, &user.LastActive, &user.Status)
+		err := rows.Scan(&user.UserName, &user.Email, &user.Phone, &user.SignupAt, &user.LastActive, &user.Status)
 		if err != nil {
 			log.Println("Failed to scan row, err:", err.Error())
 			continue

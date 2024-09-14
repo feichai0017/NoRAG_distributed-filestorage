@@ -16,8 +16,7 @@ type FileMeta struct {
 	FileName string
 	FileSize int64
 	Location string
-	UploadAt time.Time
-	OwnerID  int64
+	UploadAt string
 }
 
 var (
@@ -35,8 +34,6 @@ func TableFileToFileMeta(tfile orm.TableFile) FileMeta {
 		FileName: tfile.FileName.String,
 		FileSize: tfile.FileSize.Int64,
 		Location: tfile.FileAddr.String,
-		UploadAt: tfile.CreateAt,
-		OwnerID:  tfile.OwnerID,
 	}
 }
 
@@ -121,7 +118,7 @@ func GetFileMetaList(limit int) (*orm.ExecResult, error) {
 
 // OnFileUploadFinished : when file upload finished, save file meta to db
 func OnFileUploadFinished(fmeta FileMeta) (*orm.ExecResult, error) {
-	uInfo, _ := json.Marshal([]interface{}{fmeta.FileSha1, fmeta.FileName, fmeta.FileSize, fmeta.Location, fmeta.OwnerID})
+	uInfo, _ := json.Marshal([]interface{}{fmeta.FileSha1, fmeta.FileName, fmeta.FileSize, fmeta.Location})
 	res, err := execAction("/file/OnFileUploadFinished", uInfo)
 	return parseBody(res), err
 }
@@ -144,6 +141,18 @@ func UserLogin(username, encPasswd string) (*orm.ExecResult, error) {
 	return parseBody(res), err
 }
 
+func UserLogout(username string) (*orm.ExecResult, error) {
+	uInfo, _ := json.Marshal([]interface{}{username})
+	res, err := execAction("/user/UserLogout", uInfo)
+	return parseBody(res), err
+}
+
+func DeleteUserAccount(username string) (*orm.ExecResult, error) {
+	uInfo, _ := json.Marshal([]interface{}{username})
+	res, err := execAction("/user/DeleteUserAccount", uInfo)
+	return parseBody(res), err
+}
+
 func GetUserInfo(username string) (*orm.ExecResult, error) {
 	uInfo, _ := json.Marshal([]interface{}{username})
 	res, err := execAction("/user/GetUserInfo", uInfo)
@@ -162,100 +171,87 @@ func UpdateToken(username, token string) (*orm.ExecResult, error) {
 	return parseBody(res), err
 }
 
-func QueryUserFileMeta(userID int64, filehash string) (*orm.ExecResult, error) {
-	uInfo, _ := json.Marshal([]interface{}{userID, filehash})
+func QueryUserFileMeta(username, filehash string) (*orm.ExecResult, error) {
+	uInfo, _ := json.Marshal([]interface{}{username, filehash})
 	res, err := execAction("/ufile/QueryUserFileMeta", uInfo)
 	return parseBody(res), err
 }
 
-func QueryUserFileMetas(userID int64, limit int) (*orm.ExecResult, error) {
-	uInfo, _ := json.Marshal([]interface{}{userID, limit})
+func QueryUserFileMetas(username string, limit int) (*orm.ExecResult, error) {
+	uInfo, _ := json.Marshal([]interface{}{username, limit})
 	res, err := execAction("/ufile/QueryUserFileMetas", uInfo)
 	return parseBody(res), err
 }
 
-// OnUserFileUploadFinished : 新增/更新文件元信息到mysql中
-func OnUserFileUploadFinished(userID int64, fileID int64, fileName string, fileSize int64) (*orm.ExecResult, error) {
-	uInfo, _ := json.Marshal([]interface{}{userID, fileID, fileName, fileSize})
+func OnUserFileUploadFinished(username string, fmeta FileMeta) (*orm.ExecResult, error) {
+	uInfo, _ := json.Marshal([]interface{}{username, fmeta.FileSha1,
+		fmeta.FileName, fmeta.FileSize})
 	res, err := execAction("/ufile/OnUserFileUploadFinished", uInfo)
 	return parseBody(res), err
 }
 
-func RenameFileName(userID int64, filehash, filename string) (*orm.ExecResult, error) {
-	uInfo, _ := json.Marshal([]interface{}{userID, filehash, filename})
+func RenameFileName(username, filehash, filename string) (*orm.ExecResult, error) {
+	uInfo, _ := json.Marshal([]interface{}{username, filehash, filename})
 	res, err := execAction("/ufile/RenameFileName", uInfo)
 	return parseBody(res), err
 }
 
-// 新增的函数
-
-func CreateRole(roleName string, description string) (*orm.ExecResult, error) {
-	uInfo, _ := json.Marshal([]interface{}{roleName, description})
-	res, err := execAction("/role/CreateRole", uInfo)
-	return parseBody(res), err
-}
-
-func GetRoleInfo(roleID int64) (*orm.ExecResult, error) {
-	uInfo, _ := json.Marshal([]interface{}{roleID})
+func GetRoleInfo(roleName string) (*orm.ExecResult, error) {
+	uInfo, _ := json.Marshal([]interface{}{roleName})
 	res, err := execAction("/role/GetRoleInfo", uInfo)
 	return parseBody(res), err
 }
 
-func UpdateRole(roleID int64, roleName, description string) (*orm.ExecResult, error) {
-	uInfo, _ := json.Marshal([]interface{}{roleID, roleName, description})
+func UpdateRole(roleName, newRoleName, description string) (*orm.ExecResult, error) {
+	uInfo, _ := json.Marshal([]interface{}{roleName, newRoleName, description})
 	res, err := execAction("/role/UpdateRole", uInfo)
 	return parseBody(res), err
 }
 
-func DeleteRole(roleID int64) (*orm.ExecResult, error) {
-	uInfo, _ := json.Marshal([]interface{}{roleID})
+func DeleteRole(roleName string) (*orm.ExecResult, error) {
+	uInfo, _ := json.Marshal([]interface{}{roleName})
 	res, err := execAction("/role/DeleteRole", uInfo)
 	return parseBody(res), err
 }
 
-func ListRoles() (*orm.ExecResult, error) {
-	res, err := execAction("/role/ListRoles", nil)
-	return parseBody(res), err
-}
-
-func AssignRoleToUser(userID, roleID int64) (*orm.ExecResult, error) {
-	uInfo, _ := json.Marshal([]interface{}{userID, roleID})
+func AssignRoleToUser(username, roleName string) (*orm.ExecResult, error) {
+	uInfo, _ := json.Marshal([]interface{}{username, roleName})
 	res, err := execAction("/role/AssignRoleToUser", uInfo)
 	return parseBody(res), err
 }
 
-func RemoveRoleFromUser(userID, roleID int64) (*orm.ExecResult, error) {
-	uInfo, _ := json.Marshal([]interface{}{userID, roleID})
+func RemoveRoleFromUser(username, roleName string) (*orm.ExecResult, error) {
+	uInfo, _ := json.Marshal([]interface{}{username, roleName})
 	res, err := execAction("/role/RemoveRoleFromUser", uInfo)
 	return parseBody(res), err
 }
 
-func GetUserRoles(userID int64) (*orm.ExecResult, error) {
-	uInfo, _ := json.Marshal([]interface{}{userID})
+func GetUserRoles(username string) (*orm.ExecResult, error) {
+	uInfo, _ := json.Marshal([]interface{}{username})
 	res, err := execAction("/role/GetUserRoles", uInfo)
 	return parseBody(res), err
 }
 
-func GrantPermission(roleID, userID, fileID int64, permRead, permWrite, permDelete, permShare bool, expireTime *time.Time) (*orm.ExecResult, error) {
-	uInfo, _ := json.Marshal([]interface{}{roleID, userID, fileID, permRead, permWrite, permDelete, permShare, expireTime})
+func GrantPermission(roleName, username, filehash string, permRead, permWrite, permDelete, permShare bool, expireTime *time.Time) (*orm.ExecResult, error) {
+	uInfo, _ := json.Marshal([]interface{}{roleName, username, filehash, permRead, permWrite, permDelete, permShare, expireTime})
 	res, err := execAction("/permission/GrantPermission", uInfo)
 	return parseBody(res), err
 }
 
-func RevokePermission(roleID, userID, fileID int64) (*orm.ExecResult, error) {
-	uInfo, _ := json.Marshal([]interface{}{roleID, userID, fileID})
+func RevokePermission(roleName, username, filehash string) (*orm.ExecResult, error) {
+	uInfo, _ := json.Marshal([]interface{}{roleName, username, filehash})
 	res, err := execAction("/permission/RevokePermission", uInfo)
 	return parseBody(res), err
 }
 
-func CheckPermission(userID, fileID int64) (*orm.ExecResult, error) {
-	uInfo, _ := json.Marshal([]interface{}{userID, fileID})
+func CheckPermission(username, filehash string) (*orm.ExecResult, error) {
+	uInfo, _ := json.Marshal([]interface{}{username, filehash})
 	res, err := execAction("/permission/CheckPermission", uInfo)
 	return parseBody(res), err
 }
 
-func ListUserPermissions(userID int64) (*orm.ExecResult, error) {
-	uInfo, _ := json.Marshal([]interface{}{userID})
+func ListUserPermissions(username string) (*orm.ExecResult, error) {
+	uInfo, _ := json.Marshal([]interface{}{username})
 	res, err := execAction("/permission/ListUserPermissions", uInfo)
 	return parseBody(res), err
 }

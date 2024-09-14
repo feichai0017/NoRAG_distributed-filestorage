@@ -1,7 +1,7 @@
 package orm
 
 import (
-	mydb "cloud_distributed_storage/Backend/database/mysql"
+	mydb "cloud_distributed_storage/Backend/service/dbproxy/conn"
 	"database/sql"
 	"log"
 	"time"
@@ -55,8 +55,8 @@ func GetFileMeta(filehash string) (res ExecResult) {
 
 	tfile := TableFile{}
 	err = stmt.QueryRow(filehash).Scan(
-		&tfile.ID, &tfile.FileHash, &tfile.FileName, &tfile.FileSize,
-		&tfile.FileAddr, &tfile.OwnerID, &tfile.CreateAt, &tfile.UpdateAt, &tfile.Status)
+		&tfile.FileHash, &tfile.FileName, &tfile.FileSize,
+		&tfile.FileAddr, &tfile.Status)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			res.Suc = false
@@ -99,8 +99,8 @@ func GetFileMetaList(limit int) (res ExecResult) {
 	for rows.Next() {
 		tfile := TableFile{}
 		err := rows.Scan(
-			&tfile.ID, &tfile.FileHash, &tfile.FileName, &tfile.FileSize,
-			&tfile.FileAddr, &tfile.OwnerID, &tfile.CreateAt, &tfile.UpdateAt, &tfile.Status)
+			&tfile.FileHash, &tfile.FileName, &tfile.FileSize,
+			&tfile.FileAddr, &tfile.Status)
 		if err != nil {
 			log.Println("Failed to scan row, err: ", err.Error())
 			continue

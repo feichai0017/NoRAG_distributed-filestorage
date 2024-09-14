@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"cloud_distributed_storage/Backend/common"
 	cfg "cloud_distributed_storage/Backend/config"
-	dblayer "cloud_distributed_storage/Backend/database"
-	"cloud_distributed_storage/Backend/meta"
 	"cloud_distributed_storage/Backend/mq"
+	dbcli "cloud_distributed_storage/Backend/service/dbproxy/client"
+	"cloud_distributed_storage/Backend/service/dbproxy/orm"
 	"cloud_distributed_storage/Backend/store/ceph"
 	"cloud_distributed_storage/Backend/store/s3"
 	"cloud_distributed_storage/Backend/util"
@@ -63,7 +63,7 @@ func UploadHandler(c *gin.Context) {
 	}
 
 	// 3. 构建文件元信息
-	fileMeta := meta.FileMeta{
+	fileMeta := dbcli.FileMeta{
 		FileName: head.Filename,
 		FileSha1: util.Sha1(buf.Bytes()), //　计算文件sha1
 		FileSize: int64(len(buf.Bytes())),
@@ -142,20 +142,71 @@ func UploadHandler(c *gin.Context) {
 		}
 	}
 
-	//meta.UpdateFileMeta(fileMeta)
-	_ = meta.UpdateFileMetaDB(fileMeta)
+	//6.  更新文件表记录
+	_, err = dbcli.OnFileUploadFinished(fileMeta)
+	if err != nil {
+		errCode = -6
+		return
+	}
 
 	// 更新用户文件表记录
-	suc := dblayer.OnUserFileUploadFinished(username.(string), fileMeta.FileSha1, fileMeta.FileName, fileMeta.FileSize)
-	if suc {
+	upRes, err := dbcli.OnUserFileUploadFinished(username.(string), fileMeta)
+	if err == nil && upRes.Suc {
 		errCode = 0
 	} else {
 		errCode = -6
 	}
 }
 
+// TryFastUploadHandler : 尝试秒传接口
+func TryFastUploadHandler(c *gin.Context) {
+
+	// 1. 解析请求参数
+	username := c.Request.FormValue("username")
+	filehash := c.Request.FormValue("filehash")
+	filename := c.Request.FormValue("filename")
+	// filesize, _ := strconv.Atoi(c.Request.FormValue("filesize"))
+
+	// 2. 从文件表中查询相同hash的文件记录
+	fileMetaResp, err := dbcli.GetFileMeta(filehash)
+	if err != nil {
+		log.Println(err.Error())
+		c.Status(http.StatusInternalServerError)
+		return
+	}
+
+	// 3. 查不到记录则返回秒传失败
+	if !fileMetaResp.Suc {
+		resp := util.RespMsg{
+			Code: -1,
+			Msg:  "秒传失败，请访问普通上传接口",
+		}
+		c.Data(http.StatusOK, "application/json", resp.JSONBytes())
+		return
+	}
+
+	// 4. 上传过则将文件信息写入用户文件表， 返回成功
+	fmeta := dbcli.TableFileToFileMeta(fileMetaResp.Data.(orm.TableFile))
+	fmeta.FileName = filename
+	upRes, err := dbcli.OnUserFileUploadFinished(username, fmeta)
+	if err == nil && upRes.Suc {
+		resp := util.RespMsg{
+			Code: 0,
+			Msg:  "秒传成功",
+		}
+		c.Data(http.StatusOK, "application/json", resp.JSONBytes())
+		return
+	}
+	resp := util.RespMsg{
+		Code: -2,
+		Msg:  "秒传失败，请稍后重试",
+	}
+	c.Data(http.StatusOK, "application/json", resp.JSONBytes())
+	return
+}
+
 // 判断文件是否为重要文件
-func isImportantFile(fileMeta meta.FileMeta) bool {
+func isImportantFile(fileMeta dbcli.FileMeta) bool {
 	// 可以根据文件名、大小、类型等条件判断
 	matched, _ := regexp.MatchString("VI$", fileMeta.FileName)
 	if matched {

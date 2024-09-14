@@ -12,11 +12,13 @@ var funcs = map[string]interface{}{
 	"/file/GetFileMetaList":      orm.GetFileMetaList,
 	"/file/UpdateFileLocation":   orm.UpdateFileLocation,
 
-	"/user/UserSignup":  orm.UserSignup,
-	"/user/UserLogin":   orm.UserLogin,
-	"/user/UserExist":   orm.UserExist,
-	"/user/UpdateToken": orm.UpdateToken,
-	"/user/GetUserInfo": orm.GetUserInfo,
+	"/user/UserSignup":        orm.UserSignup,
+	"/user/UserLogin":         orm.UserLogin,
+	"/user/UserExist":         orm.UserExist,
+	"/user/UpdateToken":       orm.UpdateToken,
+	"/user/GetUserInfo":       orm.GetUserInfo,
+	"/user/UserLogout":        orm.UserLogout,
+	"/user/DeleteUserAccount": orm.DeleteUserAccount,
 
 	"/ufile/OnUserFileUploadFinished": orm.OnUserFileUploadFinished,
 	"/ufile/QueryUserFileMetas":       orm.QueryUserFileMetas,

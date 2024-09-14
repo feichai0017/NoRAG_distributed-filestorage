@@ -1,32 +1,46 @@
 #!/bin/bash
 
+# 设置工作目录
+WORK_DIR="/usr/local/Distributed_system/cloud_distributed_storage/Backend/"
+cd "$WORK_DIR" || exit
+
+# 创建日志目录
+LOG_DIR="/tmp/log/filestore-server"
+mkdir -p "$LOG_DIR"
+
+# 停止进程
 stop_process() {
-    sleep 1
-    pid=`ps aux | grep -v grep | grep "service/bin" | grep $1 | awk '{print $2}'`
+    echo "正在停止 $1 服务..."
+    pid=$(pgrep -f "service/$1")
     if [[ $pid != '' ]]; then
-	ps aux | grep -v grep | grep "service/bin" | grep $1 | awk '{print $2}' | xargs kill
-        echo -e "\033[32m已关闭: \033[0m" "$1"
-        return 1
+        kill $pid
+        sleep 2  # 给进程一些时间来关闭
+        if ! pgrep -f "service/$1" > /dev/null; then
+            echo -e "\033[32m已关闭\033[0m $1"
+            return 0
+        else
+            echo -e "\033[31m关闭失败\033[0m $1"
+            return 1
+        fi
     else
-        echo -e "\033[31m并未启动: \033[0m" "$1"
+        echo -e "\033[33m服务未运行\033[0m $1"
         return 0
     fi
 }
 
+# 服务列表
+services=(
+    "apigw"
+    "account"
+    "transfer"
+    "download"
+    "upload"
+    "dbproxy"
+)
 
-services="
-apigw
-account
-transfer
-download
-upload
-dbproxy
-"
-
-# 关闭service
-for sname in $services
-do
-    stop_process $sname
+# 停止所有服务
+for service in "${services[@]}"; do
+    stop_process "$service"
 done
 
-echo "执行完毕."
+echo "所有微服务已停止."

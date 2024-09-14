@@ -1,10 +1,12 @@
 package handler
 
 import (
+	rPool "cloud_distributed_storage/Backend/cache/redis"
 	"cloud_distributed_storage/Backend/common"
 	cfg "cloud_distributed_storage/Backend/config"
 	dblayer "cloud_distributed_storage/Backend/database"
 	"cloud_distributed_storage/Backend/service/account/proto"
+	dbcli "cloud_distributed_storage/Backend/service/dbproxy/client"
 	"cloud_distributed_storage/Backend/util"
 	"context"
 	"fmt"
@@ -26,6 +28,7 @@ func (u *User) Signup(ctx context.Context, req *proto.ReqSignup, res *proto.ResS
 	username := req.Username
 	password := req.Password
 	email := req.Email
+	phone := req.Phone
 
 	if len(username) < 2 || len(password) < 4 || len(email) == 0 {
 		res.Code = common.StatusParamInvalid
@@ -33,13 +36,13 @@ func (u *User) Signup(ctx context.Context, req *proto.ReqSignup, res *proto.ResS
 		return nil
 	}
 	enc_password := util.Sha1([]byte(password + cfg.Pwd_salt))
-	suc := dblayer.UserSignup(username, enc_password, email)
-	if suc {
+	dbResp, err := dbcli.UserSignup(username, enc_password, email, phone)
+	if err == nil && dbResp.Suc {
 		res.Code = common.StatusOK
-		res.Message = "SIGNUP SUCCESS"
+		res.Message = "注册成功"
 	} else {
 		res.Code = common.StatusRegisterFailed
-		res.Message = "SIGNUP FAILED"
+		res.Message = "注册失败"
 	}
 	return nil
 }
@@ -51,22 +54,89 @@ func (u *User) Login(ctx context.Context, req *proto.ReqLogin, res *proto.ResLog
 	password := req.Password
 	encPassword := util.Sha1([]byte(password + cfg.Pwd_salt))
 
-	pwdChecked := dblayer.UserSignIn(username, encPassword)
+	dbResp, err := dbcli.UserLogin(username, encPassword)
 
-	if !pwdChecked {
+	if err != nil || !dbResp.Suc {
 		res.Code = common.StatusLoginFailed
-		res.Message = "LOGIN FAILED"
+		return nil
 	} else {
 		token := GenToken(username)
-		upRes := dblayer.UpdateToken(username, token)
-		if !upRes {
-			res.Code = common.StatusUserNotExists
-			res.Message = "UPDATE FAILED"
+		rConn := rPool.RedisPool().Get()
+		defer rConn.Close()
+
+		_, err := rConn.Do("SET", fmt.Sprintf("session_%s", token), username, "EX", 86400) // 24 hours expiration
+		upRes, err := dbcli.UpdateToken(username, token)
+		if err != nil || !upRes.Suc {
+			res.Code = common.StatusServerError
+			return nil
 		} else {
 			res.Code = common.StatusOK
 			res.Message = "LOGIN SUCCESS"
+			res.Token = token
 		}
 	}
+	return nil
+}
+
+// Logout: RPC handler for user logout
+func (u *User) Logout(ctx context.Context, req *proto.ReqLogout, res *proto.ResLogout) error {
+	token := req.Token
+
+	rConn := rPool.RedisPool().Get()
+	defer rConn.Close()
+
+	_, err := rConn.Do("DEL", fmt.Sprintf("session_%s", token))
+	if err != nil {
+		res.Code = common.StatusServerError
+		res.Message = "LOGOUT FAILED"
+	} else {
+		res.Code = common.StatusOK
+		res.Message = "LOGOUT SUCCESS"
+	}
+	return nil
+}
+
+// DeleteAccount: RPC handler for account deletion
+func (u *User) DeleteAccount(ctx context.Context, req *proto.ReqDeleteAccount, res *proto.ResDeleteAccount) error {
+	username := req.Username
+	password := req.Password
+
+	encPassword := util.Sha1([]byte(password + cfg.Pwd_salt))
+	pwdChecked := dblayer.UserSignIn(username, encPassword)
+	if !pwdChecked {
+		res.Code = common.StatusLoginFailed
+		res.Message = "AUTHENTICATION FAILED"
+		return nil
+	}
+
+	// Delete user data
+	outRes, err := dbcli.UserLogout(username)
+	if err != nil || !outRes.Suc {
+		res.Code = common.StatusServerError
+		res.Message = "FAILED TO DELETE USER DATA"
+		return nil
+	}
+
+	// Delete user account
+	delRes, err := dbcli.DeleteUserAccount(username)
+	if err != nil || !delRes.Suc {
+		res.Code = common.StatusServerError
+		res.Message = "FAILED TO DELETE USER ACCOUNT"
+		return nil
+	}
+
+	// Clear user session from Redis
+	rConn := rPool.RedisPool().Get()
+	defer rConn.Close()
+
+	_, err = rConn.Do("DEL", fmt.Sprintf("session_%s", req.Token))
+	if err != nil {
+		// Log the error, but don't fail the operation
+		fmt.Printf("Failed to clear user session: %v\n", err)
+	}
+
+	res.Code = common.StatusOK
+	res.Message = "ACCOUNT DELETED SUCCESSFULLY"
 	return nil
 }
 
@@ -74,17 +144,26 @@ func (u *User) UserInfo(ctx context.Context, req *proto.ReqUserInfo, res *proto.
 
 	username := req.Username
 
-	user, err := dblayer.GetUserInfo(username)
+	dbResp, err := dbcli.GetUserInfo(req.Username)
 	if err != nil {
+		res.Code = common.StatusServerError
+		res.Message = "服务错误"
+		return nil
+	}
+	// 查不到对应的用户信息
+	if !dbResp.Suc {
 		res.Code = common.StatusUserNotExists
-		res.Message = "user not exists"
+		res.Message = "用户不存在"
 		return nil
 	}
 
+	user := dbcli.ToTableUser(dbResp.Data)
+
+	// 3. 组装并且响应用户数据
 	res.Code = common.StatusOK
-	res.Username = user.Username
+	res.Username = username
 	res.SignupAt = user.SignupAt
-	res.LastActiveAt = user.LastActiveAt
+	res.LastActiveAt = user.LastActive
 	res.Status = int32(user.Status)
 	// TODO: 需增加接口支持完善用户信息(email/phone等)
 	res.Email = user.Email

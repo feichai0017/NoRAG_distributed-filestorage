@@ -1,17 +1,17 @@
 package orm
 
 import (
-	mydb "cloud_distributed_storage/Backend/database/mysql"
+	mydb "cloud_distributed_storage/Backend/service/dbproxy/conn"
 	"database/sql"
 	"log"
 	"time"
 )
 
 // GrantPermission 授予权限
-func GrantPermission(roleID, userID, fileID int64, permRead, permWrite, permDelete, permShare bool, expireTime *time.Time) (res ExecResult) {
+func GrantPermission(roleName, userName, fileSha1 string, permRead, permWrite, permDelete, permShare bool, expireTime *time.Time) (res ExecResult) {
 	stmt, err := mydb.DBConn().Prepare(`
         INSERT INTO tbl_permission 
-        (role_id, user_id, file_id, perm_read, perm_write, perm_delete, perm_share, expire_time) 
+        (role_name, user_name, file_sha1, perm_read, perm_write, perm_delete, perm_share, expire_time) 
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE
         perm_read = VALUES(perm_read),
@@ -28,7 +28,7 @@ func GrantPermission(roleID, userID, fileID int64, permRead, permWrite, permDele
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(roleID, userID, fileID, permRead, permWrite, permDelete, permShare, expireTime)
+	_, err = stmt.Exec(roleName, userName, fileSha1, permRead, permWrite, permDelete, permShare, expireTime)
 	if err != nil {
 		log.Println("Failed to execute statement, err:", err.Error())
 		res.Suc = false
@@ -41,8 +41,8 @@ func GrantPermission(roleID, userID, fileID int64, permRead, permWrite, permDele
 }
 
 // RevokePermission 撤销权限
-func RevokePermission(roleID, userID, fileID int64) (res ExecResult) {
-	stmt, err := mydb.DBConn().Prepare("DELETE FROM tbl_permission WHERE role_id = ? AND user_id = ? AND file_id = ?")
+func RevokePermission(roleName, userName, fileSha1 string) (res ExecResult) {
+	stmt, err := mydb.DBConn().Prepare("DELETE FROM tbl_permission WHERE role_name = ? AND user_name = ? AND file_sha1 = ?")
 	if err != nil {
 		log.Println("Failed to prepare statement, err:", err.Error())
 		res.Suc = false
@@ -51,7 +51,7 @@ func RevokePermission(roleID, userID, fileID int64) (res ExecResult) {
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(roleID, userID, fileID)
+	_, err = stmt.Exec(roleName, userName, fileSha1)
 	if err != nil {
 		log.Println("Failed to execute statement, err:", err.Error())
 		res.Suc = false
@@ -64,12 +64,12 @@ func RevokePermission(roleID, userID, fileID int64) (res ExecResult) {
 }
 
 // CheckPermission 检查权限
-func CheckPermission(userID, fileID int64) (res ExecResult) {
+func CheckPermission(userName, fileSha1 string) (res ExecResult) {
 	query := `
         SELECT p.perm_read, p.perm_write, p.perm_delete, p.perm_share, p.expire_time
         FROM tbl_permission p
-        LEFT JOIN tbl_user_role ur ON p.role_id = ur.role_id
-        WHERE (p.user_id = ? OR ur.user_id = ?) AND p.file_id = ?
+        LEFT JOIN tbl_user_role ur ON p.role_name = ur.role_name
+        WHERE (p.user_name = ? OR ur.user_name = ?) AND p.file_sha1 = ?
         AND (p.expire_time IS NULL OR p.expire_time > NOW())
     `
 
@@ -85,7 +85,7 @@ func CheckPermission(userID, fileID int64) (res ExecResult) {
 	var permRead, permWrite, permDelete, permShare bool
 	var expireTime sql.NullTime
 
-	err = stmt.QueryRow(userID, userID, fileID).Scan(&permRead, &permWrite, &permDelete, &permShare, &expireTime)
+	err = stmt.QueryRow(userName, userName, fileSha1).Scan(&permRead, &permWrite, &permDelete, &permShare, &expireTime)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			res.Suc = true
@@ -114,13 +114,13 @@ func CheckPermission(userID, fileID int64) (res ExecResult) {
 }
 
 // ListUserPermissions 列出用户的所有权限
-func ListUserPermissions(userID int64) (res ExecResult) {
+func ListUserPermissions(userName string) (res ExecResult) {
 	query := `
-        SELECT p.file_id, f.file_name, p.perm_read, p.perm_write, p.perm_delete, p.perm_share, p.expire_time
+        SELECT p.file_sha1, f.file_name, p.perm_read, p.perm_write, p.perm_delete, p.perm_share, p.expire_time
         FROM tbl_permission p
-        LEFT JOIN tbl_user_role ur ON p.role_id = ur.role_id
-        LEFT JOIN tbl_file f ON p.file_id = f.id
-        WHERE p.user_id = ? OR ur.user_id = ?
+        LEFT JOIN tbl_user_role ur ON p.role_name = ur.role_name
+        LEFT JOIN tbl_file f ON p.file_sha1 = f.file_sha1
+        WHERE p.user_name = ? OR ur.user_name = ?
         AND (p.expire_time IS NULL OR p.expire_time > NOW())
     `
 
@@ -133,7 +133,7 @@ func ListUserPermissions(userID int64) (res ExecResult) {
 	}
 	defer stmt.Close()
 
-	rows, err := stmt.Query(userID, userID)
+	rows, err := stmt.Query(userName, userName)
 	if err != nil {
 		log.Println("Failed to execute query, err:", err.Error())
 		res.Suc = false
@@ -144,19 +144,18 @@ func ListUserPermissions(userID int64) (res ExecResult) {
 
 	var permissions []map[string]interface{}
 	for rows.Next() {
-		var fileID int64
-		var fileName string
+		var fileSha1, fileName string
 		var permRead, permWrite, permDelete, permShare bool
 		var expireTime sql.NullTime
 
-		err := rows.Scan(&fileID, &fileName, &permRead, &permWrite, &permDelete, &permShare, &expireTime)
+		err := rows.Scan(&fileSha1, &fileName, &permRead, &permWrite, &permDelete, &permShare, &expireTime)
 		if err != nil {
 			log.Println("Failed to scan row, err:", err.Error())
 			continue
 		}
 
 		perm := map[string]interface{}{
-			"file_id":     fileID,
+			"file_sha1":   fileSha1,
 			"file_name":   fileName,
 			"read":        permRead,
 			"write":       permWrite,
