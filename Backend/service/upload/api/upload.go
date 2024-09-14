@@ -111,7 +111,6 @@ func UploadHandler(c *gin.Context) {
 		}
 		fileMeta.Location = cephPath
 	case "s3":
-		// save file into s3
 		// 文件写入S3存储
 		s3Path := cfg.S3RootDir + fileMeta.FileSha1
 		// 判断写入S3为同步还是异步
@@ -137,7 +136,7 @@ func UploadHandler(c *gin.Context) {
 			log.Printf("start to publish message to transcode: %s\n", pubData)
 			pubSuc := mq.Publish(cfg.TransExchangeName, cfg.TransS3RoutingKey, pubData)
 			if !pubSuc {
-				//	TODO: retry current message
+				log.Println("文件转移消息发送失败，稍后重试")
 			}
 		}
 	}

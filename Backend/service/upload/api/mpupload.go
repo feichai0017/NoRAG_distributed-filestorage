@@ -2,14 +2,19 @@ package api
 
 import (
 	rPool "cloud_distributed_storage/Backend/cache/redis"
+	"cloud_distributed_storage/Backend/common"
 	"cloud_distributed_storage/Backend/config"
 	cfg "cloud_distributed_storage/Backend/config"
+	"cloud_distributed_storage/Backend/mq"
 	dbcli "cloud_distributed_storage/Backend/service/dbproxy/client"
+	"cloud_distributed_storage/Backend/store/ceph"
 	"cloud_distributed_storage/Backend/util"
+	"encoding/json"
 	"fmt"
 	"github.com/garyburd/redigo/redis"
 	"github.com/gin-gonic/gin"
 	"io"
+	"io/ioutil"
 	"log"
 	"math"
 	"net/http"
@@ -173,7 +178,7 @@ func CompleteUploadHandler(c *gin.Context) {
 		return
 	}
 
-	// 4. TODO：合并分块, 可以将ceph当临时存储，合并时将文件写入ceph;
+	// 4. 合并分块
 	// 也可以不用在本地进行合并，转移的时候将分块append到ceph/s3即可
 	srcPath := config.TempPartRootDir + upid + "/"
 	destPath := cfg.TempLocalRootDir + filehash
@@ -181,13 +186,7 @@ func CompleteUploadHandler(c *gin.Context) {
 	mergeRes, err := util.ExecLinuxShell(cmd)
 	if err != nil {
 		log.Println(err)
-		c.JSON(
-			http.StatusOK,
-			gin.H{
-				"code": -2,
-				"msg":  "合并失败",
-				"data": nil,
-			})
+		c.JSON(http.StatusOK, gin.H{"code": -2, "msg": "合并失败", "data": nil})
 		return
 	}
 	log.Println(mergeRes)
@@ -215,14 +214,76 @@ func CompleteUploadHandler(c *gin.Context) {
 		return
 	}
 
-	// 6. 响应处理结果
-	c.JSON(
-		http.StatusOK,
-		gin.H{
-			"code": 0,
-			"msg":  "OK",
-			"data": nil,
-		})
+	// 6. 判断存储策略
+	var storageType string
+	if isImportantFile(fmeta) {
+		storageType = "ceph"
+	} else {
+		storageType = "s3"
+	}
+
+	// 7. 根据存储策略保存文件
+	switch storageType {
+	case "ceph":
+		// 保存文件到Ceph
+		data, err := ioutil.ReadFile(destPath)
+		if err != nil {
+			log.Println(err.Error())
+			c.JSON(http.StatusInternalServerError, gin.H{"code": -3, "msg": "读取文件失败", "data": nil})
+			return
+		}
+		cephPath := cfg.CephRootDir + filehash
+		err = ceph.PutObject("userfile", cephPath, data)
+		if err != nil {
+			log.Println(err.Error())
+			c.JSON(http.StatusInternalServerError, gin.H{"code": -4, "msg": "上传到Ceph失败", "data": nil})
+			return
+		}
+		fmeta.Location = cephPath
+	case "s3":
+		// 文件写入S3存储
+		// 判断写入S3为同步还是异步
+		if cfg.AsyncTransferEnable {
+			data := mq.TransferData{
+				FileHash:      filehash,
+				CurLocation:   destPath,
+				DestLocation:  cfg.S3RootDir + filehash,
+				DestStoreType: common.StoreS3,
+			}
+			pubData, _ := json.Marshal(data)
+			pubSuc := mq.Publish(
+				cfg.TransExchangeName,
+				cfg.TransS3RoutingKey,
+				pubData,
+			)
+			if !pubSuc {
+				log.Println("文件转移消息发送失败，稍后重试")
+			}
+		}
+	}
+
+	// 8. 更新文件表记录
+	_, err = dbcli.OnFileUploadFinished(fmeta)
+	if err != nil {
+		log.Println(err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"code": -5, "msg": "保存文件元信息失败", "data": nil})
+		return
+	}
+
+	// 9. 更新用户文件表记录
+	upRes, err := dbcli.OnUserFileUploadFinished(username, fmeta)
+	if err != nil || !upRes.Suc {
+		log.Println(err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"code": -6, "msg": "保存用户文件关系失败", "data": nil})
+		return
+	}
+
+	// 10. 响应处理结果
+	c.JSON(http.StatusOK, gin.H{
+		"code": 0,
+		"msg":  "上传成功",
+		"data": nil,
+	})
 }
 
 // CancelUploadHandler : 取消上传
