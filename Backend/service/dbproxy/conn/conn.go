@@ -5,20 +5,27 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
-	"os"
+
+	_ "github.com/go-sql-driver/mysql"
 )
 
 var db *sql.DB
 
-func InitDBConn() {
-	fmt.Println("MySQLSource:", cfg.MySQLSource)
-	db, _ = sql.Open("mysql", cfg.MySQLSource)
-	db.SetMaxOpenConns(1000)
-	err := db.Ping()
+func InitDBConn() error {
+	var err error
+	db, err = sql.Open("mysql", cfg.MySQLSource)
 	if err != nil {
-		fmt.Printf("Failed to connect to MySQL, err: %s", err.Error())
-		os.Exit(1)
+		return fmt.Errorf("failed to open database: %v", err)
 	}
+
+	db.SetMaxOpenConns(1000)
+	err = db.Ping()
+	if err != nil {
+		return fmt.Errorf("failed to connect to MySQL: %v", err)
+	}
+
+	log.Println("Successfully connected to MySQL database")
+	return nil
 }
 
 // DBConn 返回数据库连接对象
@@ -27,8 +34,12 @@ func DBConn() *sql.DB {
 }
 
 // ParseRows 将查询结果解析为 map
-func ParseRows(rows *sql.Rows) []map[string]interface{} {
-	columns, _ := rows.Columns()
+func ParseRows(rows *sql.Rows) ([]map[string]interface{}, error) {
+	columns, err := rows.Columns()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get columns: %v", err)
+	}
+
 	scanArgs := make([]interface{}, len(columns))
 	values := make([]interface{}, len(columns))
 	for j := range values {
@@ -37,21 +48,23 @@ func ParseRows(rows *sql.Rows) []map[string]interface{} {
 
 	var result []map[string]interface{}
 	for rows.Next() {
-		_ = rows.Scan(scanArgs...)
+		err := rows.Scan(scanArgs...)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan row: %v", err)
+		}
+
 		entry := make(map[string]interface{})
 		for i, col := range values {
 			if col != nil {
-				entry[columns[i]] = string(col.([]byte))
+				entry[columns[i]] = col
 			}
 		}
 		result = append(result, entry)
 	}
-	return result
-}
 
-func checkErr(err error) {
-	if err != nil {
-		log.Fatal(err)
-		panic(err)
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating rows: %v", err)
 	}
+
+	return result, nil
 }

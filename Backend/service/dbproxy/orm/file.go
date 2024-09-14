@@ -3,24 +3,31 @@ package orm
 import (
 	mydb "cloud_distributed_storage/Backend/database/mysql"
 	"database/sql"
-	"github.com/go-acme/lego/v4/log"
+	"log"
+	"time"
 )
 
-func OnFileUploadFinished(filehash string, filename string, filesize int64, fileaddr string) (res ExecResult) {
-	stmt, err := mydb.DBConn().Prepare("insert ignore into tbl_file (`file_sha1`, `file_name`, `file_size`, `file_addr`, `status`) values (?, ?, ?, ?, 1)")
+func OnFileUploadFinished(filehash string, filename string, filesize int64, fileaddr string, ownerID int64) (res ExecResult) {
+	stmt, err := mydb.DBConn().Prepare(
+		"INSERT INTO tbl_file (`file_sha1`, `file_name`, `file_size`, `file_addr`, `owner_id`, `status`, `create_at`) " +
+			"VALUES (?, ?, ?, ?, ?, 1, ?) ON DUPLICATE KEY UPDATE `owner_id`=?, `update_at`=?")
 	if err != nil {
 		log.Println("Failed to prepare statement, err: ", err.Error())
 		res.Suc = false
+		res.Msg = err.Error()
 		return
 	}
 	defer stmt.Close()
 
-	ret, err := stmt.Exec(filehash, filename, filesize, fileaddr)
+	nowTime := time.Now()
+	ret, err := stmt.Exec(filehash, filename, filesize, fileaddr, ownerID, nowTime, ownerID, nowTime)
 	if err != nil {
 		log.Println("Failed to execute statement, err: ", err.Error())
 		res.Suc = false
+		res.Msg = err.Error()
 		return
 	}
+
 	if rf, err := ret.RowsAffected(); err == nil {
 		if rf <= 0 {
 			log.Printf("File with hash: %s has been uploaded before", filehash)
@@ -28,14 +35,16 @@ func OnFileUploadFinished(filehash string, filename string, filesize int64, file
 		res.Suc = true
 		return
 	}
-	res.Suc = false
-	return
 
+	res.Suc = false
+	res.Msg = "Failed to upload file"
+	return
 }
 
-// GetFileMeta: Get file meta info
 func GetFileMeta(filehash string) (res ExecResult) {
-	stmt, err := mydb.DBConn().Prepare("select file_sha1, file_name, file_size, file_addr from tbl_file where file_sha1 = ? and status = 1 limit 1")
+	stmt, err := mydb.DBConn().Prepare(
+		"SELECT id, file_sha1, file_name, file_size, file_addr, owner_id, create_at, update_at, status " +
+			"FROM tbl_file WHERE file_sha1 = ? AND status = 1 LIMIT 1")
 	if err != nil {
 		log.Println("Failed to prepare statement, err: ", err.Error())
 		res.Suc = false
@@ -45,28 +54,30 @@ func GetFileMeta(filehash string) (res ExecResult) {
 	defer stmt.Close()
 
 	tfile := TableFile{}
-	err = stmt.QueryRow(filehash).Scan(&tfile.FileHash, &tfile.FileAddr, &tfile.FileName, &tfile.FileSize)
+	err = stmt.QueryRow(filehash).Scan(
+		&tfile.ID, &tfile.FileHash, &tfile.FileName, &tfile.FileSize,
+		&tfile.FileAddr, &tfile.OwnerID, &tfile.CreateAt, &tfile.UpdateAt, &tfile.Status)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			log.Println("No records found")
 			res.Suc = false
-			res.Data = nil
-			return
+			res.Msg = "File not found"
 		} else {
 			log.Println("Failed to execute statement, err: ", err.Error())
 			res.Suc = false
 			res.Msg = err.Error()
-			return
 		}
+		return
 	}
+
 	res.Suc = true
 	res.Data = tfile
 	return
 }
 
-// GetFileMetaList: Get file meta info list
 func GetFileMetaList(limit int) (res ExecResult) {
-	stmt, err := mydb.DBConn().Prepare("select file_sha1, file_name, file_size, file_addr from tbl_file where status = 1 limit ?")
+	stmt, err := mydb.DBConn().Prepare(
+		"SELECT id, file_sha1, file_name, file_size, file_addr, owner_id, create_at, update_at, status " +
+			"FROM tbl_file WHERE status = 1 LIMIT ?")
 	if err != nil {
 		log.Println("Failed to prepare statement, err: ", err.Error())
 		res.Suc = false
@@ -82,27 +93,29 @@ func GetFileMetaList(limit int) (res ExecResult) {
 		res.Msg = err.Error()
 		return
 	}
+	defer rows.Close()
 
-	columns, _ := rows.Columns()
-	values := make([]sql.RawBytes, len(columns))
 	var tfiles []TableFile
-	for i := 0; i < len(values) && rows.Next(); i++ {
+	for rows.Next() {
 		tfile := TableFile{}
-		err := rows.Scan(&tfile.FileHash, &tfile.FileName, &tfile.FileSize, &tfile.FileAddr)
+		err := rows.Scan(
+			&tfile.ID, &tfile.FileHash, &tfile.FileName, &tfile.FileSize,
+			&tfile.FileAddr, &tfile.OwnerID, &tfile.CreateAt, &tfile.UpdateAt, &tfile.Status)
 		if err != nil {
 			log.Println("Failed to scan row, err: ", err.Error())
-			break
+			continue
 		}
 		tfiles = append(tfiles, tfile)
 	}
+
 	res.Suc = true
 	res.Data = tfiles
 	return
 }
 
-// UpdateFileLocation: Update file location
 func UpdateFileLocation(filehash string, fileaddr string) (res ExecResult) {
-	stmt, err := mydb.DBConn().Prepare("update tbl_file set file_addr = ? where file_sha1 = ? limit 1")
+	stmt, err := mydb.DBConn().Prepare(
+		"UPDATE tbl_file SET file_addr = ?, update_at = ? WHERE file_sha1 = ? AND status = 1")
 	if err != nil {
 		log.Println("Failed to prepare statement, err: ", err.Error())
 		res.Suc = false
@@ -111,24 +124,25 @@ func UpdateFileLocation(filehash string, fileaddr string) (res ExecResult) {
 	}
 	defer stmt.Close()
 
-	ret, err := stmt.Exec(fileaddr, filehash)
+	ret, err := stmt.Exec(fileaddr, time.Now(), filehash)
 	if err != nil {
 		log.Println("Failed to execute statement, err: ", err.Error())
 		res.Suc = false
 		res.Msg = err.Error()
 		return
 	}
+
 	if rf, err := ret.RowsAffected(); err == nil {
 		if rf <= 0 {
-			log.Printf("File with hash: %s not found", filehash)
 			res.Suc = false
-			res.Msg = "File not found"
-			return
+			res.Msg = "File not found or already updated"
+		} else {
+			res.Suc = true
 		}
-		res.Suc = true
 		return
 	}
+
 	res.Suc = false
-	res.Msg = err.Error()
+	res.Msg = "Failed to update file location"
 	return
 }

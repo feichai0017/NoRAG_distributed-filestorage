@@ -8,7 +8,7 @@ import (
 	"github.com/asim/go-micro/v3"
 	"github.com/mitchellh/mapstructure"
 	"log"
-	"strconv"
+	"time"
 )
 
 type FileMeta struct {
@@ -16,7 +16,8 @@ type FileMeta struct {
 	FileName string
 	FileSize int64
 	Location string
-	UploadAt string
+	UploadAt time.Time
+	OwnerID  int64
 }
 
 var (
@@ -34,6 +35,8 @@ func TableFileToFileMeta(tfile orm.TableFile) FileMeta {
 		FileName: tfile.FileName.String,
 		FileSize: tfile.FileSize.Int64,
 		Location: tfile.FileAddr.String,
+		UploadAt: tfile.CreateAt,
+		OwnerID:  tfile.OwnerID,
 	}
 }
 
@@ -107,8 +110,8 @@ func GetFileMeta(filehash string) (*orm.ExecResult, error) {
 	return parseBody(res), nil
 }
 
-func GetFileMetaList(username string, limit int) (*orm.ExecResult, error) {
-	uInfo, err := json.Marshal([]string{username, strconv.Itoa(limit)})
+func GetFileMetaList(limit int) (*orm.ExecResult, error) {
+	uInfo, err := json.Marshal([]int{limit})
 	res, err := execAction("/file/GetFileMetaList", uInfo)
 	if err != nil {
 		return nil, err
@@ -118,7 +121,7 @@ func GetFileMetaList(username string, limit int) (*orm.ExecResult, error) {
 
 // OnFileUploadFinished : when file upload finished, save file meta to db
 func OnFileUploadFinished(fmeta FileMeta) (*orm.ExecResult, error) {
-	uInfo, _ := json.Marshal([]interface{}{fmeta.FileSha1, fmeta.FileName, fmeta.FileSize, fmeta.Location})
+	uInfo, _ := json.Marshal([]interface{}{fmeta.FileSha1, fmeta.FileName, fmeta.FileSize, fmeta.Location, fmeta.OwnerID})
 	res, err := execAction("/file/OnFileUploadFinished", uInfo)
 	return parseBody(res), err
 }
@@ -129,8 +132,8 @@ func UpdateFileLocation(filehash, location string) (*orm.ExecResult, error) {
 	return parseBody(res), err
 }
 
-func UserSignup(username, encPasswd string) (*orm.ExecResult, error) {
-	uInfo, _ := json.Marshal([]interface{}{username, encPasswd})
+func UserSignup(username, encPasswd, email, phone string) (*orm.ExecResult, error) {
+	uInfo, _ := json.Marshal([]interface{}{username, encPasswd, email, phone})
 	res, err := execAction("/user/UserSignup", uInfo)
 	return parseBody(res), err
 }
@@ -159,28 +162,100 @@ func UpdateToken(username, token string) (*orm.ExecResult, error) {
 	return parseBody(res), err
 }
 
-func QueryUserFileMeta(username, filehash string) (*orm.ExecResult, error) {
-	uInfo, _ := json.Marshal([]interface{}{username, filehash})
+func QueryUserFileMeta(userID int64, filehash string) (*orm.ExecResult, error) {
+	uInfo, _ := json.Marshal([]interface{}{userID, filehash})
 	res, err := execAction("/ufile/QueryUserFileMeta", uInfo)
 	return parseBody(res), err
 }
 
-func QueryUserFileMetas(username string, limit int) (*orm.ExecResult, error) {
-	uInfo, _ := json.Marshal([]interface{}{username, limit})
+func QueryUserFileMetas(userID int64, limit int) (*orm.ExecResult, error) {
+	uInfo, _ := json.Marshal([]interface{}{userID, limit})
 	res, err := execAction("/ufile/QueryUserFileMetas", uInfo)
 	return parseBody(res), err
 }
 
 // OnUserFileUploadFinished : 新增/更新文件元信息到mysql中
-func OnUserFileUploadFinished(username string, fmeta FileMeta) (*orm.ExecResult, error) {
-	uInfo, _ := json.Marshal([]interface{}{username, fmeta.FileSha1,
-		fmeta.FileName, fmeta.FileSize})
+func OnUserFileUploadFinished(userID int64, fileID int64, fileName string, fileSize int64) (*orm.ExecResult, error) {
+	uInfo, _ := json.Marshal([]interface{}{userID, fileID, fileName, fileSize})
 	res, err := execAction("/ufile/OnUserFileUploadFinished", uInfo)
 	return parseBody(res), err
 }
 
-func RenameFileName(username, filehash, filename string) (*orm.ExecResult, error) {
-	uInfo, _ := json.Marshal([]interface{}{username, filehash, filename})
+func RenameFileName(userID int64, filehash, filename string) (*orm.ExecResult, error) {
+	uInfo, _ := json.Marshal([]interface{}{userID, filehash, filename})
 	res, err := execAction("/ufile/RenameFileName", uInfo)
+	return parseBody(res), err
+}
+
+// 新增的函数
+
+func CreateRole(roleName string, description string) (*orm.ExecResult, error) {
+	uInfo, _ := json.Marshal([]interface{}{roleName, description})
+	res, err := execAction("/role/CreateRole", uInfo)
+	return parseBody(res), err
+}
+
+func GetRoleInfo(roleID int64) (*orm.ExecResult, error) {
+	uInfo, _ := json.Marshal([]interface{}{roleID})
+	res, err := execAction("/role/GetRoleInfo", uInfo)
+	return parseBody(res), err
+}
+
+func UpdateRole(roleID int64, roleName, description string) (*orm.ExecResult, error) {
+	uInfo, _ := json.Marshal([]interface{}{roleID, roleName, description})
+	res, err := execAction("/role/UpdateRole", uInfo)
+	return parseBody(res), err
+}
+
+func DeleteRole(roleID int64) (*orm.ExecResult, error) {
+	uInfo, _ := json.Marshal([]interface{}{roleID})
+	res, err := execAction("/role/DeleteRole", uInfo)
+	return parseBody(res), err
+}
+
+func ListRoles() (*orm.ExecResult, error) {
+	res, err := execAction("/role/ListRoles", nil)
+	return parseBody(res), err
+}
+
+func AssignRoleToUser(userID, roleID int64) (*orm.ExecResult, error) {
+	uInfo, _ := json.Marshal([]interface{}{userID, roleID})
+	res, err := execAction("/role/AssignRoleToUser", uInfo)
+	return parseBody(res), err
+}
+
+func RemoveRoleFromUser(userID, roleID int64) (*orm.ExecResult, error) {
+	uInfo, _ := json.Marshal([]interface{}{userID, roleID})
+	res, err := execAction("/role/RemoveRoleFromUser", uInfo)
+	return parseBody(res), err
+}
+
+func GetUserRoles(userID int64) (*orm.ExecResult, error) {
+	uInfo, _ := json.Marshal([]interface{}{userID})
+	res, err := execAction("/role/GetUserRoles", uInfo)
+	return parseBody(res), err
+}
+
+func GrantPermission(roleID, userID, fileID int64, permRead, permWrite, permDelete, permShare bool, expireTime *time.Time) (*orm.ExecResult, error) {
+	uInfo, _ := json.Marshal([]interface{}{roleID, userID, fileID, permRead, permWrite, permDelete, permShare, expireTime})
+	res, err := execAction("/permission/GrantPermission", uInfo)
+	return parseBody(res), err
+}
+
+func RevokePermission(roleID, userID, fileID int64) (*orm.ExecResult, error) {
+	uInfo, _ := json.Marshal([]interface{}{roleID, userID, fileID})
+	res, err := execAction("/permission/RevokePermission", uInfo)
+	return parseBody(res), err
+}
+
+func CheckPermission(userID, fileID int64) (*orm.ExecResult, error) {
+	uInfo, _ := json.Marshal([]interface{}{userID, fileID})
+	res, err := execAction("/permission/CheckPermission", uInfo)
+	return parseBody(res), err
+}
+
+func ListUserPermissions(userID int64) (*orm.ExecResult, error) {
+	uInfo, _ := json.Marshal([]interface{}{userID})
+	res, err := execAction("/permission/ListUserPermissions", uInfo)
 	return parseBody(res), err
 }

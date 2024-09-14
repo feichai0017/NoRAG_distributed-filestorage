@@ -2,12 +2,14 @@ package orm
 
 import (
 	mydb "cloud_distributed_storage/Backend/database/mysql"
+	"database/sql"
 	"log"
+	"time"
 )
 
-// UserSignup: Insert user info into database
-func UserSignup(username string, passwd string) (res ExecResult) {
-	stmt, err := mydb.DBConn().Prepare("insert ignore into tbl_user (`user_name`, `user_pwd`) values (?, ?)")
+func UserSignup(username, passwd, email, phone string) (res ExecResult) {
+	stmt, err := mydb.DBConn().Prepare(
+		"INSERT INTO tbl_user (`user_name`, `user_pwd`, `email`, `phone`, `signup_at`) VALUES (?, ?, ?, ?, ?)")
 	if err != nil {
 		log.Println("Failed to prepare statement, err: ", err.Error())
 		res.Suc = false
@@ -16,28 +18,26 @@ func UserSignup(username string, passwd string) (res ExecResult) {
 	}
 	defer stmt.Close()
 
-	ret, err := stmt.Exec(username, passwd)
+	ret, err := stmt.Exec(username, passwd, email, phone, time.Now())
 	if err != nil {
 		log.Println("Failed to execute statement, err: ", err.Error())
 		res.Suc = false
 		res.Msg = err.Error()
 		return
 	}
-	if rf, err := ret.RowsAffected(); err == nil {
-		if rf <= 0 {
-			log.Printf("User: %s has been registered before", username)
-		}
+
+	if rowsAffected, err := ret.RowsAffected(); err == nil && rowsAffected > 0 {
 		res.Suc = true
 		return
 	}
+
 	res.Suc = false
 	res.Msg = "Failed to insert user"
 	return
 }
 
-// UserLogin: Check user info in database
 func UserLogin(username string, encpwd string) (res ExecResult) {
-	stmt, err := mydb.DBConn().Prepare("select * from tbl_user where user_name = ? limit 1")
+	stmt, err := mydb.DBConn().Prepare("SELECT id, user_pwd FROM tbl_user WHERE user_name = ? LIMIT 1")
 	if err != nil {
 		log.Println(err.Error())
 		res.Suc = false
@@ -46,33 +46,36 @@ func UserLogin(username string, encpwd string) (res ExecResult) {
 	}
 	defer stmt.Close()
 
-	rows, err := stmt.Query(username)
+	var (
+		userId int64
+		dbPwd  string
+	)
+	err = stmt.QueryRow(username).Scan(&userId, &dbPwd)
 	if err != nil {
-		log.Println(err.Error())
-		res.Suc = false
-		res.Msg = err.Error()
-		return
-	} else if rows == nil {
-		log.Println("Username not found: " + username)
-		res.Suc = false
-		res.Msg = "Username not found"
+		if err == sql.ErrNoRows {
+			res.Suc = false
+			res.Msg = "User not found"
+		} else {
+			log.Println(err.Error())
+			res.Suc = false
+			res.Msg = err.Error()
+		}
 		return
 	}
 
-	pRows, _ := mydb.ParseRows(rows)
-	if len(pRows) > 0 && string(pRows[0]["user_pwd"].([]byte)) == encpwd {
+	if dbPwd == encpwd {
 		res.Suc = true
-		res.Data = true
-		return
+		res.Data = userId
+	} else {
+		res.Suc = false
+		res.Msg = "Incorrect password"
 	}
-	res.Suc = false
-	res.Msg = "Incorrect password"
 	return
 }
 
-// UpdateToken: Update user token
-func UpdateToken(username string, token string) (res ExecResult) {
-	stmt, err := mydb.DBConn().Prepare("replace into tbl_user_token (`user_name`, `user_token`) values (?, ?)")
+func UpdateToken(username, token string) (res ExecResult) {
+	stmt, err := mydb.DBConn().Prepare(
+		"REPLACE INTO tbl_user_token (`user_name`, `user_token`) VALUES (?, ?)")
 	if err != nil {
 		log.Println(err.Error())
 		res.Suc = false
@@ -88,14 +91,16 @@ func UpdateToken(username string, token string) (res ExecResult) {
 		res.Msg = err.Error()
 		return
 	}
+
 	res.Suc = true
 	return
 }
 
-// GetUserInfo: Get user info
 func GetUserInfo(username string) (res ExecResult) {
 	user := TableUser{}
-	stmt, err := mydb.DBConn().Prepare("select user_name, signup_at from tbl_user where user_name = ? limit 1")
+	stmt, err := mydb.DBConn().Prepare(
+		"SELECT id, user_name, email, phone, email_validated, phone_validated, signup_at, last_active, profile, status " +
+			"FROM tbl_user WHERE user_name = ? LIMIT 1")
 	if err != nil {
 		log.Println(err.Error())
 		res.Suc = false
@@ -104,21 +109,29 @@ func GetUserInfo(username string) (res ExecResult) {
 	}
 	defer stmt.Close()
 
-	err = stmt.QueryRow(username).Scan(&user.Username, &user.SignupAt)
+	err = stmt.QueryRow(username).Scan(
+		&user.ID, &user.Username, &user.Email, &user.Phone,
+		&user.EmailValidated, &user.PhoneValidated, &user.SignupAt,
+		&user.LastActive, &user.Profile, &user.Status)
 	if err != nil {
-		log.Println(err.Error())
-		res.Suc = false
-		res.Msg = err.Error()
+		if err == sql.ErrNoRows {
+			res.Suc = false
+			res.Msg = "User not found"
+		} else {
+			log.Println(err.Error())
+			res.Suc = false
+			res.Msg = err.Error()
+		}
 		return
 	}
+
 	res.Suc = true
 	res.Data = user
 	return
 }
 
-// UserExist: Check if user exists
 func UserExist(username string) (res ExecResult) {
-	stmt, err := mydb.DBConn().Prepare("select 1 from tbl_user where user_name = ? limit 1")
+	stmt, err := mydb.DBConn().Prepare("SELECT 1 FROM tbl_user WHERE user_name = ? LIMIT 1")
 	if err != nil {
 		log.Println(err.Error())
 		res.Suc = false
@@ -127,22 +140,16 @@ func UserExist(username string) (res ExecResult) {
 	}
 	defer stmt.Close()
 
-	rows, err := stmt.Query(username)
-	if err != nil {
+	var exists int
+	err = stmt.QueryRow(username).Scan(&exists)
+	if err != nil && err != sql.ErrNoRows {
 		log.Println(err.Error())
 		res.Suc = false
 		res.Msg = err.Error()
 		return
-	} else if rows == nil {
-		log.Println("Username not found: " + username)
-		res.Suc = false
-		res.Msg = "Username not found"
-		return
 	}
 
 	res.Suc = true
-	res.Data = map[string]bool{
-		"exists": rows.Next(),
-	}
+	res.Data = exists == 1
 	return
 }
