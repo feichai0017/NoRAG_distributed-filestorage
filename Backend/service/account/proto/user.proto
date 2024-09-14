@@ -6,6 +6,8 @@ option go_package = "cloud_distributed_storage/Backend/service/account/proto;pro
 service UserService {
   rpc Signup(ReqSignup) returns (ResSignup){}
   rpc Login(ReqLogin) returns (ResLogin){}
+  rpc Logout(ReqLogout) returns (ResLogout) {}
+  rpc DeleteAccount(ReqDeleteAccount) returns (ResDeleteAccount) {}
   rpc UserInfo(ReqUserInfo) returns (ResUserInfo){}
   rpc UserFiles(ReqUserFiles) returns (ResUserFiles){}
   rpc UserFileRename(ReqUserFileRename) returns (ResUserFileRename){}
@@ -15,6 +17,7 @@ message ReqSignup{
   string username = 1;
   string password = 2;
   string email = 3;
+  string phone = 4;
 }
 
 message ResSignup{
@@ -29,6 +32,27 @@ message ReqLogin{
 }
 
 message ResLogin{
+  int32 code = 1;
+  string message = 2;
+  string token = 3;
+}
+
+message ReqLogout {
+  string token = 1;
+}
+
+message ResLogout {
+  int32 code = 1;
+  string message = 2;
+}
+
+message ReqDeleteAccount {
+  string username = 1;
+  string password = 2;
+  string token = 3;
+}
+
+message ResDeleteAccount {
   int32 code = 1;
   string message = 2;
 }

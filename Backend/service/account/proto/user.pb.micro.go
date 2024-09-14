@@ -38,6 +38,8 @@ func NewUserServiceEndpoints() []*api.Endpoint {
 type UserService interface {
 	Signup(ctx context.Context, in *ReqSignup, opts ...client.CallOption) (*ResSignup, error)
 	Login(ctx context.Context, in *ReqLogin, opts ...client.CallOption) (*ResLogin, error)
+	Logout(ctx context.Context, in *ReqLogout, opts ...client.CallOption) (*ResLogout, error)
+	DeleteAccount(ctx context.Context, in *ReqDeleteAccount, opts ...client.CallOption) (*ResDeleteAccount, error)
 	UserInfo(ctx context.Context, in *ReqUserInfo, opts ...client.CallOption) (*ResUserInfo, error)
 	UserFiles(ctx context.Context, in *ReqUserFiles, opts ...client.CallOption) (*ResUserFiles, error)
 	UserFileRename(ctx context.Context, in *ReqUserFileRename, opts ...client.CallOption) (*ResUserFileRename, error)
@@ -68,6 +70,26 @@ func (c *userService) Signup(ctx context.Context, in *ReqSignup, opts ...client.
 func (c *userService) Login(ctx context.Context, in *ReqLogin, opts ...client.CallOption) (*ResLogin, error) {
 	req := c.c.NewRequest(c.name, "UserService.Login", in)
 	out := new(ResLogin)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userService) Logout(ctx context.Context, in *ReqLogout, opts ...client.CallOption) (*ResLogout, error) {
+	req := c.c.NewRequest(c.name, "UserService.Logout", in)
+	out := new(ResLogout)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userService) DeleteAccount(ctx context.Context, in *ReqDeleteAccount, opts ...client.CallOption) (*ResDeleteAccount, error) {
+	req := c.c.NewRequest(c.name, "UserService.DeleteAccount", in)
+	out := new(ResDeleteAccount)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -110,6 +132,8 @@ func (c *userService) UserFileRename(ctx context.Context, in *ReqUserFileRename,
 type UserServiceHandler interface {
 	Signup(context.Context, *ReqSignup, *ResSignup) error
 	Login(context.Context, *ReqLogin, *ResLogin) error
+	Logout(context.Context, *ReqLogout, *ResLogout) error
+	DeleteAccount(context.Context, *ReqDeleteAccount, *ResDeleteAccount) error
 	UserInfo(context.Context, *ReqUserInfo, *ResUserInfo) error
 	UserFiles(context.Context, *ReqUserFiles, *ResUserFiles) error
 	UserFileRename(context.Context, *ReqUserFileRename, *ResUserFileRename) error
@@ -119,6 +143,8 @@ func RegisterUserServiceHandler(s server.Server, hdlr UserServiceHandler, opts .
 	type userService interface {
 		Signup(ctx context.Context, in *ReqSignup, out *ResSignup) error
 		Login(ctx context.Context, in *ReqLogin, out *ResLogin) error
+		Logout(ctx context.Context, in *ReqLogout, out *ResLogout) error
+		DeleteAccount(ctx context.Context, in *ReqDeleteAccount, out *ResDeleteAccount) error
 		UserInfo(ctx context.Context, in *ReqUserInfo, out *ResUserInfo) error
 		UserFiles(ctx context.Context, in *ReqUserFiles, out *ResUserFiles) error
 		UserFileRename(ctx context.Context, in *ReqUserFileRename, out *ResUserFileRename) error
@@ -140,6 +166,14 @@ func (h *userServiceHandler) Signup(ctx context.Context, in *ReqSignup, out *Res
 
 func (h *userServiceHandler) Login(ctx context.Context, in *ReqLogin, out *ResLogin) error {
 	return h.UserServiceHandler.Login(ctx, in, out)
+}
+
+func (h *userServiceHandler) Logout(ctx context.Context, in *ReqLogout, out *ResLogout) error {
+	return h.UserServiceHandler.Logout(ctx, in, out)
+}
+
+func (h *userServiceHandler) DeleteAccount(ctx context.Context, in *ReqDeleteAccount, out *ResDeleteAccount) error {
+	return h.UserServiceHandler.DeleteAccount(ctx, in, out)
 }
 
 func (h *userServiceHandler) UserInfo(ctx context.Context, in *ReqUserInfo, out *ResUserInfo) error {
