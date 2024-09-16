@@ -7,18 +7,20 @@ import (
 	dlProto "cloud_distributed_storage/Backend/service/download/proto"
 	"cloud_distributed_storage/Backend/service/download/route"
 	dlRpc "cloud_distributed_storage/Backend/service/download/rpc"
-	"cloud_distributed_storage/Backend/service/registry"
 	"fmt"
+	"github.com/asim/go-micro/plugins/registry/consul/v3"
 	"github.com/asim/go-micro/v3"
+	"github.com/asim/go-micro/v3/registry"
 	"time"
 )
 
 func startRPCService() {
-	consulReg := registry.GetConsulRegistry()
-
+	// 创建 Consul 注册中心
+	reg := consul.NewRegistry(registry.Addrs("localhost:8500"))
+	// 创建一个新的服务
 	service := micro.NewService(
 		micro.Name("go.micro.service.download"), // 在注册中心中的服务名称
-		micro.Registry(consulReg),
+		micro.Registry(reg),                     // 设置注册中心
 		micro.RegisterTTL(time.Second*10),
 		micro.RegisterInterval(time.Second*5),
 		micro.Flags(common.CustomFlags...),

@@ -2,27 +2,47 @@ package handler
 
 import (
 	cmn "cloud_distributed_storage/Backend/common"
+	cfg "cloud_distributed_storage/Backend/config"
 	userProto "cloud_distributed_storage/Backend/service/account/proto"
+	dlProto "cloud_distributed_storage/Backend/service/download/proto"
+	upProto "cloud_distributed_storage/Backend/service/upload/proto"
 	"cloud_distributed_storage/Backend/util"
+	"context"
+	hystrix "github.com/asim/go-micro/plugins/wrapper/breaker/hystrix/v3"
+	ratelimit "github.com/asim/go-micro/plugins/wrapper/ratelimiter/ratelimit/v3"
 	"github.com/asim/go-micro/v3"
 	"github.com/gin-gonic/gin"
-	"golang.org/x/net/context"
+	ratelimit2 "github.com/juju/ratelimit"
 	"log"
 	"net/http"
 )
 
 var (
 	userCli userProto.UserService
+	upCli   upProto.UploadService
+	dlCli   dlProto.DownloadService
 )
 
 func init() {
-	service := micro.NewService()
+	//配置请求容量及qps
+	bRate := ratelimit2.NewBucketWithRate(100, 1000)
+	service := micro.NewService(
+		micro.Flags(cmn.CustomFlags...),
+		micro.WrapClient(ratelimit.NewClientWrapper(bRate, false)), //加入限流功能, false为不等待(超限即返回请求失败)
+		micro.WrapClient(hystrix.NewClientWrapper()),               // 加入熔断功能, 处理rpc调用失败的情况(cirucuit breaker)
+	)
 
 	//init service
 	service.Init()
 
-	//init user service rpc client
-	userCli = userProto.NewUserService("go.micro.service.user", service.Client())
+	cli := service.Client()
+
+	// 初始化一个account服务的客户端
+	userCli = userProto.NewUserService("go.micro.service.user", cli)
+	// 初始化一个upload服务的客户端
+	upCli = upProto.NewUploadService("go.micro.service.upload", cli)
+	// 初始化一个download服务的客户端
+	dlCli = dlProto.NewDownloadService("go.micro.service.download", cli)
 }
 
 // SignupHandler: register api
@@ -31,14 +51,19 @@ func SignupHandler(c *gin.Context) {
 	username := c.Request.FormValue("username")
 	password := c.Request.FormValue("password")
 	email := c.Request.FormValue("email")
+	phone := c.Request.FormValue("phone")
 
 	rpcResp, err := userCli.Signup(context.TODO(), &userProto.ReqSignup{
 		Username: username,
 		Password: password,
 		Email:    email,
+		Phone:    phone,
 	})
+
 	if err != nil {
+		log.Println(err.Error())
 		c.Status(http.StatusInternalServerError)
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -71,6 +96,28 @@ func SignInHandler(c *gin.Context) {
 		})
 		return
 	}
+
+	// 登录成功，返回用户信息
+	cliResp := util.RespMsg{
+		Code: int(cmn.StatusOK),
+		Msg:  "登录成功",
+		Data: struct {
+			Location      string
+			Username      string
+			Token         string
+			UploadEntry   string
+			DownloadEntry string
+		}{
+			Location: "/static/view/home.html",
+			Username: username,
+			Token:    rpcResp.Token,
+			// UploadEntry:   upEntryResp.Entry,
+			// DownloadEntry: dlEntryResp.Entry,
+			UploadEntry:   cfg.UploadLBHost,
+			DownloadEntry: cfg.DownloadLBHost,
+		},
+	}
+	c.Data(http.StatusOK, "application/json", cliResp.JSONBytes())
 }
 
 // SignOutHandler: 处理登出请求

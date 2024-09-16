@@ -9,6 +9,7 @@ import (
 	dbcli "cloud_distributed_storage/Backend/service/dbproxy/client"
 	"cloud_distributed_storage/Backend/util"
 	"context"
+	"errors"
 	"fmt"
 	"time"
 )
@@ -33,17 +34,25 @@ func (u *User) Signup(ctx context.Context, req *proto.ReqSignup, res *proto.ResS
 	if len(username) < 2 || len(password) < 4 || len(email) == 0 {
 		res.Code = common.StatusParamInvalid
 		res.Message = "Invalid parameter"
-		return nil
+		return errors.New("无效的参数")
 	}
 	enc_password := util.Sha1([]byte(password + cfg.Pwd_salt))
 	dbResp, err := dbcli.UserSignup(username, enc_password, email, phone)
-	if err == nil && dbResp.Suc {
-		res.Code = common.StatusOK
-		res.Message = "注册成功"
-	} else {
+
+	if err != nil {
 		res.Code = common.StatusRegisterFailed
-		res.Message = "注册失败"
+		res.Message = "注册失败: " + err.Error()
+		return err
 	}
+
+	if !dbResp.Suc {
+		res.Code = common.StatusRegisterFailed
+		res.Message = "注册失败: 数据库操作未成功"
+		return errors.New("数据库操作未成功")
+	}
+
+	res.Code = common.StatusOK
+	res.Message = "注册成功"
 	return nil
 }
 

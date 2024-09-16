@@ -6,20 +6,21 @@ import (
 	dbConn "cloud_distributed_storage/Backend/service/dbproxy/conn"
 	dbProxy "cloud_distributed_storage/Backend/service/dbproxy/proto"
 	dbRpc "cloud_distributed_storage/Backend/service/dbproxy/rpc"
-	registry "cloud_distributed_storage/Backend/service/registry"
+	"github.com/asim/go-micro/plugins/registry/consul/v3"
 	"github.com/asim/go-micro/v3"
+	"github.com/asim/go-micro/v3/registry"
 	"github.com/urfave/cli/v2"
 	"log"
 	"time"
 )
 
 func startRpcService() {
-	// Create Consul registry
-	consulReg := registry.GetConsulRegistry()
-
+	// 创建 Consul 注册中心
+	reg := consul.NewRegistry(registry.Addrs("localhost:8500"))
+	//start rpc server
 	service := micro.NewService(
 		micro.Name("go.micro.service.dbproxy"),
-		micro.Registry(consulReg),
+		micro.Registry(reg),
 		micro.RegisterTTL(time.Second*10),
 		micro.RegisterInterval(time.Second*5),
 		micro.Flags(common.CustomFlags...),
