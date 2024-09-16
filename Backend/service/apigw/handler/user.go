@@ -73,6 +73,39 @@ func SignInHandler(c *gin.Context) {
 	}
 }
 
+// SignOutHandler: 处理登出请求
+func SignOutHandler(c *gin.Context) {
+	token, exists := c.Get("token")
+	if !exists {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Username not found in context"})
+		return
+	}
+	_, err := userCli.Logout(context.TODO(), &userProto.ReqLogout{
+		Token: token.(string),
+	})
+	if err != nil {
+		log.Println(err.Error())
+		c.Status(http.StatusInternalServerError)
+		return
+	}
+}
+
+// DeleteUserHandler: 处理删除用户请求
+func DeleteUserHandler(c *gin.Context) {
+	username := c.Request.FormValue("username")
+	password := c.Request.FormValue("password")
+
+	_, err := userCli.DeleteAccount(context.TODO(), &userProto.ReqDeleteAccount{
+		Username: username,
+		Password: password,
+	})
+	if err != nil {
+		log.Println(err.Error())
+		c.Status(http.StatusInternalServerError)
+		return
+	}
+}
+
 // UserInfoHandler ： 查询用户信息
 func UserInfoHandler(c *gin.Context) {
 	// 1. 解析请求参数

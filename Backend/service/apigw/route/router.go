@@ -19,5 +19,13 @@ func Router() *gin.Engine {
 
 	router.GET("/user/info", handler.UserInfoHandler)
 
+	router.GET("/user/logout", handler.SignOutHandler)
+
+	router.POST("user/delete", handler.DeleteUserHandler)
+
+	router.POST("/file/query", handler.FileQueryHandler)
+
+	router.POST("/file/update", handler.FileMetaUpdateHandler)
+
 	return router
 }
