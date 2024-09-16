@@ -4,19 +4,20 @@ import (
 	"cloud_distributed_storage/Backend/common"
 	"cloud_distributed_storage/Backend/service/account/handler"
 	userProto "cloud_distributed_storage/Backend/service/account/proto"
-	registry "cloud_distributed_storage/Backend/service/registry"
+	"github.com/asim/go-micro/plugins/registry/consul/v3"
 	"github.com/asim/go-micro/v3"
+	"github.com/asim/go-micro/v3/registry"
 	"log"
 	"time"
 )
 
 func main() {
-	// Create Consul registry
-	consulReg := registry.GetConsulRegistry()
-
+	// 创建 Consul 注册中心
+	reg := consul.NewRegistry(registry.Addrs("localhost:8500"))
+	// 创建服务
 	service := micro.NewService(
 		micro.Name("go.micro.service.user"),
-		micro.Registry(consulReg),
+		micro.Registry(reg),
 		micro.RegisterTTL(time.Second*10),
 		micro.RegisterInterval(time.Second*5),
 		micro.Flags(common.CustomFlags...),

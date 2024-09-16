@@ -11,7 +11,7 @@ func Router() *gin.Engine {
 
 	// 使用gin插件支持跨域请求
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:  []string{"http://192.168.0.200:3001"}, // []string{"http://localhost:8081"},
+		AllowOrigins:  []string{"http://localhost:3001", "http://192.168.0.105:3001"}, // []string{"http://localhost:8081"},
 		AllowMethods:  []string{"GET", "POST", "OPTIONS"},
 		AllowHeaders:  []string{"Origin", "Range", "x-requested-with", "content-Type"},
 		ExposeHeaders: []string{"Content-Length", "Accept-Ranges", "Content-Range", "Content-Disposition"},
