@@ -11,6 +11,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"time"
 )
 
@@ -66,6 +67,7 @@ func (u *User) Login(ctx context.Context, req *proto.ReqLogin, res *proto.ResLog
 	dbResp, err := dbcli.UserLogin(username, encPassword)
 
 	if err != nil || !dbResp.Suc {
+		log.Println("err: ", err)
 		res.Code = common.StatusLoginFailed
 		return nil
 	} else {
@@ -74,8 +76,7 @@ func (u *User) Login(ctx context.Context, req *proto.ReqLogin, res *proto.ResLog
 		defer rConn.Close()
 
 		_, err := rConn.Do("SET", fmt.Sprintf("session_%s", token), username, "EX", 86400) // 24 hours expiration
-		upRes, err := dbcli.UpdateToken(username, token)
-		if err != nil || !upRes.Suc {
+		if err != nil {
 			res.Code = common.StatusServerError
 			return nil
 		} else {

@@ -26,6 +26,17 @@ var (
 )
 
 func InitService() error {
+	// 配置 Hystrix
+	hystrixConfig := hystrix.CommandConfig{
+		Timeout:               10000, // 10 秒
+		MaxConcurrentRequests: 100,
+		ErrorPercentThreshold: 25,
+	}
+
+	hystrix.ConfigureCommand("go.micro.service.user", hystrixConfig)
+	hystrix.ConfigureCommand("go.micro.service.upload", hystrixConfig)
+	hystrix.ConfigureCommand("go.micro.service.download", hystrixConfig)
+
 	reg := consul.NewRegistry(registry.Addrs("localhost:8500"))
 
 	//配置请求容量及qps
@@ -54,24 +65,36 @@ func InitService() error {
 	return nil
 }
 
+var userData struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+	Email    string `json:"email"`
+	Phone    string `json:"phone"`
+}
+
 // SignupHandler: register api
 func SignupHandler(c *gin.Context) {
 
-	username := c.Request.FormValue("username")
-	password := c.Request.FormValue("password")
-	email := c.Request.FormValue("email")
-	phone := c.Request.FormValue("phone")
+	if err := c.ShouldBindJSON(&userData); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	log.Println("username: ", userData.Username)
+	log.Println("password: ", userData.Password)
+	log.Println("email: ", userData.Email)
+	log.Println("phone: ", userData.Phone)
 
 	rpcResp, err := userCli.Signup(context.TODO(), &userProto.ReqSignup{
-		Username: username,
-		Password: password,
-		Email:    email,
-		Phone:    phone,
+		Username: userData.Username,
+		Password: userData.Password,
+		Email:    userData.Email,
+		Phone:    userData.Phone,
 	})
 
 	if err != nil {
-		log.Println(err.Error())
-		c.Status(http.StatusInternalServerError)
+		log.Printf("Error calling user service: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
 		return
 	}
 
@@ -84,12 +107,14 @@ func SignupHandler(c *gin.Context) {
 // SignInHandler: login api
 func SignInHandler(c *gin.Context) {
 
-	username := c.Request.FormValue("username")
-	password := c.Request.FormValue("password")
+	if err := c.ShouldBindJSON(&userData); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
 
 	rpcResp, err := userCli.Login(context.TODO(), &userProto.ReqLogin{
-		Username: username,
-		Password: password,
+		Username: userData.Username,
+		Password: userData.Password,
 	})
 
 	if err != nil {
@@ -118,7 +143,7 @@ func SignInHandler(c *gin.Context) {
 			DownloadEntry string
 		}{
 			Location: "/static/view/home.html",
-			Username: username,
+			Username: userData.Username,
 			Token:    rpcResp.Token,
 			// UploadEntry:   upEntryResp.Entry,
 			// DownloadEntry: dlEntryResp.Entry,
@@ -148,12 +173,15 @@ func SignOutHandler(c *gin.Context) {
 
 // DeleteUserHandler: 处理删除用户请求
 func DeleteUserHandler(c *gin.Context) {
-	username := c.Request.FormValue("username")
-	password := c.Request.FormValue("password")
+
+	if err := c.ShouldBindJSON(&userData); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
 
 	_, err := userCli.DeleteAccount(context.TODO(), &userProto.ReqDeleteAccount{
-		Username: username,
-		Password: password,
+		Username: userData.Username,
+		Password: userData.Password,
 	})
 	if err != nil {
 		log.Println(err.Error())

@@ -5,6 +5,7 @@ import (
 	dbProto "cloud_distributed_storage/Backend/service/dbproxy/proto"
 	"context"
 	"encoding/json"
+	"errors"
 	"github.com/asim/go-micro/v3"
 	"github.com/mitchellh/mapstructure"
 	"log"
@@ -20,12 +21,15 @@ type FileMeta struct {
 }
 
 var (
-	dbCli dbProto.DBProxyService
+	dbCli       dbProto.DBProxyService
+	initialized bool
 )
 
 func Init(service micro.Service) {
 	// 初始化 dbproxy service
 	dbCli = dbProto.NewDBProxyService("go.micro.service.dbproxy", service.Client())
+	initialized = true
+	log.Println("DBProxy client initialized")
 }
 
 func TableFileToFileMeta(tfile orm.TableFile) FileMeta {
@@ -39,14 +43,31 @@ func TableFileToFileMeta(tfile orm.TableFile) FileMeta {
 
 // execAction : send request to dbproxy to execute action
 func execAction(funcName string, paramJson []byte) (*dbProto.ResExec, error) {
-	return dbCli.ExecuteAction(context.TODO(), &dbProto.ReqExec{
+	if !initialized {
+		return nil, errors.New("DBProxy client not initialized")
+	}
+
+	log.Printf("Executing action: %s with params: %s", funcName, string(paramJson))
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	res, err := dbCli.ExecuteAction(ctx, &dbProto.ReqExec{
 		Actions: []*dbProto.SingleAction{
-			&dbProto.SingleAction{
+			{
 				Name:   funcName,
 				Params: paramJson,
 			},
 		},
 	})
+
+	if err != nil {
+		log.Printf("Error executing action %s: %v", funcName, err)
+		return nil, err
+	}
+
+	log.Printf("Action %s executed successfully", funcName)
+	return res, nil
 }
 
 // parseBody : parse response rpc body
