@@ -4,6 +4,7 @@ import (
 	"cloud_distributed_storage/Backend/common"
 	"cloud_distributed_storage/Backend/service/account/handler"
 	userProto "cloud_distributed_storage/Backend/service/account/proto"
+	dbproxy "cloud_distributed_storage/Backend/service/dbproxy/client"
 	"github.com/asim/go-micro/plugins/registry/consul/v3"
 	"github.com/asim/go-micro/v3"
 	"github.com/asim/go-micro/v3/registry"
@@ -24,6 +25,9 @@ func main() {
 	)
 
 	service.Init()
+
+	// 初始化dbproxy client
+	dbproxy.Init(service)
 
 	// 注册处理程序
 	if err := userProto.RegisterUserServiceHandler(service.Server(), new(handler.User)); err != nil {
