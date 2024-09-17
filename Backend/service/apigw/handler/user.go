@@ -8,9 +8,11 @@ import (
 	upProto "cloud_distributed_storage/Backend/service/upload/proto"
 	"cloud_distributed_storage/Backend/util"
 	"context"
+	"github.com/asim/go-micro/plugins/registry/consul/v3"
 	hystrix "github.com/asim/go-micro/plugins/wrapper/breaker/hystrix/v3"
 	ratelimit "github.com/asim/go-micro/plugins/wrapper/ratelimiter/ratelimit/v3"
 	"github.com/asim/go-micro/v3"
+	"github.com/asim/go-micro/v3/registry"
 	"github.com/gin-gonic/gin"
 	ratelimit2 "github.com/juju/ratelimit"
 	"log"
@@ -23,10 +25,15 @@ var (
 	dlCli   dlProto.DownloadService
 )
 
-func init() {
+func InitService() error {
+	reg := consul.NewRegistry(registry.Addrs("localhost:8500"))
+
 	//配置请求容量及qps
 	bRate := ratelimit2.NewBucketWithRate(100, 1000)
+
 	service := micro.NewService(
+		micro.Name("go.micro.service.apigw"),
+		micro.Registry(reg),
 		micro.Flags(cmn.CustomFlags...),
 		micro.WrapClient(ratelimit.NewClientWrapper(bRate, false)), //加入限流功能, false为不等待(超限即返回请求失败)
 		micro.WrapClient(hystrix.NewClientWrapper()),               // 加入熔断功能, 处理rpc调用失败的情况(cirucuit breaker)
@@ -43,6 +50,8 @@ func init() {
 	upCli = upProto.NewUploadService("go.micro.service.upload", cli)
 	// 初始化一个download服务的客户端
 	dlCli = dlProto.NewDownloadService("go.micro.service.download", cli)
+
+	return nil
 }
 
 // SignupHandler: register api

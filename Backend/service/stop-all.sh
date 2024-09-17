@@ -12,11 +12,18 @@ mkdir -p "$LOG_DIR" || { echo "无法创建日志目录"; exit 1; }
 stop_process() {
     local service=$1
     echo "正在停止 $service 服务..."
-    local pid=$(pgrep -f "service/$service")
+    local pid
+
+    if [ "$service" = "apigw" ]; then
+        pid=$(pgrep -f "service/bin/apigw")
+    else
+        pid=$(pgrep -f "service/$service")
+    fi
+
     if [[ -n $pid ]]; then
         kill -15 $pid  # 首先尝试优雅关闭
         for i in {1..10}; do  # 等待最多10秒
-            if ! pgrep -f "service/$service" > /dev/null; then
+            if ! ps -p $pid > /dev/null; then
                 echo -e "\033[32m已关闭\033[0m $service"
                 return 0
             fi
@@ -24,7 +31,7 @@ stop_process() {
         done
         # 如果进程仍在运行，强制终止
         kill -9 $pid
-        if ! pgrep -f "service/$service" > /dev/null; then
+        if ! ps -p $pid > /dev/null; then
             echo -e "\033[33m已强制关闭\033[0m $service"
             return 0
         else

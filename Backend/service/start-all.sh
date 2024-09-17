@@ -36,17 +36,17 @@ start_service() {
         echo "服务 $1 启动失败，退出脚本。"
         exit 1
     fi
-    sleep 2  # 在启动下一个服务之前稍作等待
+    sleep 5  # 在启动下一个服务之前稍作等待
 }
 
 # 服务列表
 services=(
+    "apigw"
     "dbproxy"
     "upload"
     "download"
     "transfer"
     "account"
-    "apigw"
 )
 
 # 确保 bin 目录存在
