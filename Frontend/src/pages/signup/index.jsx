@@ -1,7 +1,9 @@
+'use client'
+
 // eslint-disable-next-line no-unused-vars
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { LockIcon, CheckCircleIcon, EyeIcon, EyeOffIcon, UserIcon, MailIcon } from 'lucide-react'
+import { LockIcon, CheckCircleIcon, EyeIcon, EyeOffIcon, UserIcon, MailIcon, PhoneIcon } from 'lucide-react'
 import { signUpAPI } from "@/api/user.jsx"
 
 export default function EnhancedSignUp() {
@@ -12,16 +14,19 @@ export default function EnhancedSignUp() {
     const [formData, setFormData] = useState({
         username: '',
         email: '',
-        password: ''
+        password: '',
+        phone: ''
     })
 
     const validateForm = () => {
         const errors = {}
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+        const phoneRegex = /^\+?[1-9]\d{1,10}$/
 
         if (!formData.username) errors.username = 'Username is required'
         if (!emailRegex.test(formData.email)) errors.email = 'Invalid email address'
         if (formData.password.length < 8) errors.password = 'Password must be at least 8 characters'
+        if (!phoneRegex.test(formData.phone)) errors.phone = 'Invalid phone number'
 
         return errors
     }
@@ -40,7 +45,7 @@ export default function EnhancedSignUp() {
         if (Object.keys(errors).length === 0) {
             try {
                 const response = await signUpAPI(formData)
-                if (response && response.status === 201) {
+                if (response && (response.data.code === 1000)) {
                     setIsSuccess(true)
                 } else {
                     throw new Error(response.data || 'An unexpected error occurred')
@@ -185,6 +190,23 @@ export default function EnhancedSignUp() {
                             <MailIcon className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                         </div>
                         {formErrors.email && <p className="text-red-500 text-sm mt-1 ml-2">{formErrors.email}</p>}
+                    </div>
+                    <div>
+                        <label htmlFor="phone" className={labelClasses}>Phone Number</label>
+                        <div className="relative">
+                            <input
+                                id="phone"
+                                name="phone"
+                                type="tel"
+                                value={formData.phone}
+                                onChange={handleInputChange}
+                                required
+                                className={inputClasses}
+                                placeholder="+1234567890"
+                            />
+                            <PhoneIcon className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                        </div>
+                        {formErrors.phone && <p className="text-red-500 text-sm mt-1 ml-2">{formErrors.phone}</p>}
                     </div>
                     <div>
                         <label htmlFor="password" className={labelClasses}>Password</label>

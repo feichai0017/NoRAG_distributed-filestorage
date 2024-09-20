@@ -17,10 +17,11 @@ export default function EnhancedLogin() {
         const formData = new FormData(event.currentTarget)
         try {
             const response = await loginAPI(formData)
-            if (response && response.status === 200) {
-                setToken(response.data.token)
+            console.log(response)
+            if (response && response.code === 10000) {
+                setToken(response.data.Token)
                 localStorage.setItem('username', formData.get('username'))
-                window.location.href = '/account'
+                window.location.href = '/'
             } else {
                 throw new Error('Unexpected response from server')
             }

@@ -1,8 +1,4 @@
-"use client"
-
 import React, { useState } from 'react';
-import { Search, FileText, AlertCircle } from 'lucide-react';
-import { queryAPI } from "@/api/files";
 import {
     Box,
     Typography,
@@ -12,267 +8,272 @@ import {
     ListItem,
     ListItemIcon,
     ListItemText,
+    Checkbox,
     Paper,
-    Alert,
-    InputAdornment,
-    Autocomplete,
-    useTheme
+    Divider,
+    useTheme,
+    alpha,
+    IconButton,
 } from '@mui/material';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import {
+    Search as SearchIcon,
+    Description as FileIcon,
+    Folder as FolderIcon,
+    ExpandMore as ExpandMoreIcon,
+    ChevronRight as ChevronRightIcon,
+    AccountTree as MindMapIcon,
+    Menu as MenuIcon,
+} from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const EnhancedQueryFile = () => {
-    const theme = useTheme();
-    const [filehash, setFilehash] = useState('');
-    const [results, setResults] = useState([]);
-    const [error, setError] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
-    const [searchHistory] = useState(['example1', 'example2', 'example3']);
-    const [suggestions] = useState(['suggestion1', 'suggestion2', 'suggestion3']);
+const MotionPaper = motion(Paper);
+const MotionBox = motion(Box);
 
-    // 固定的搜索统计数据
-    const stats = [
-        { name: 'Mon', searches: 4 },
-        { name: 'Tue', searches: 7 },
-        { name: 'Wed', searches: 2 },
-        { name: 'Thu', searches: 5 },
-        { name: 'Fri', searches: 9 },
-        { name: 'Sat', searches: 3 },
-        { name: 'Sun', searches: 6 },
-    ];
+const TreeView = ({ data, onSelect, selectedItems }) => {
+    const [expanded, setExpanded] = useState({});
 
-    const handleInputChange = (event, newValue) => {
-        setFilehash(newValue);
+    const toggleExpand = (id) => {
+        setExpanded(prev => ({ ...prev, [id]: !prev[id] }));
     };
 
-    const handleFormSubmit = async (e) => {
-        e.preventDefault();
-        setIsLoading(true);
-        setError('');
-        setResults([]);
-
-        try {
-            const data = await queryAPI({ filehash: filehash });
-            if (!data || data.error) {
-                setError(data ? data.error : 'No data received');
+    const handleSelect = (node) => {
+        if (node.children) {
+            const childIds = node.children.map(child => child.id);
+            if (childIds.every(id => selectedItems.includes(id))) {
+                onSelect(childIds, false);
             } else {
-                setResults(data);
+                onSelect(childIds, true);
             }
-        } catch (error) {
-            setError('Error fetching data');
-        } finally {
-            setIsLoading(false);
+        } else {
+            onSelect([node.id], !selectedItems.includes(node.id));
         }
     };
 
-    return (
-        <Box
-            sx={{
-                minHeight: '100vh',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'flex-start',
-                p: 4,
-                bgcolor: 'background.default',
-                color: 'text.primary',
-            }}
-        >
-            <Paper
-                elevation={24}
-                sx={{
-                    width: '100%',
-                    maxWidth: 'md',
-                    borderRadius: 4,
-                    overflow: 'hidden',
-                    transition: 'all 0.3s ease-in-out',
-                    '&:hover': {
-                        transform: 'scale(1.02)',
-                    },
-                    bgcolor: 'background.paper',
-                }}
-            >
-                <Box sx={{ p: 4 }}>
-                    <Typography
-                        variant="h4"
-                        component="h1"
-                        align="center"
+    const renderTree = (nodes) => (
+        <List>
+            {nodes.map((node) => (
+                <motion.div
+                    key={node.id}
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3 }}
+                >
+                    <ListItem
+                        button
+                        onClick={() => handleSelect(node)}
                         sx={{
-                            mb: 3,
-                            fontWeight: 'bold',
-                            background: theme.palette.mode === 'dark'
-                                ? 'linear-gradient(45deg, #90caf9 30%, #64b5f6 90%)'
-                                : 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
-                            WebkitBackgroundClip: 'text',
-                            WebkitTextFillColor: 'transparent'
+                            pl: node.level * 2,
+                            borderRadius: 1,
+                            mb: 0.5,
+                            '&:hover': {
+                                bgcolor: 'action.hover',
+                            },
                         }}
                     >
-                        File Search
-                    </Typography>
-                    <form onSubmit={handleFormSubmit}>
-                        <Autocomplete
-                            freeSolo
-                            options={[...searchHistory, ...suggestions]}
-                            renderInput={(params) => (
-                                <TextField
-                                    {...params}
-                                    fullWidth
-                                    variant="outlined"
-                                    placeholder="Enter filehash"
-                                    required
-                                    InputProps={{
-                                        ...params.InputProps,
-                                        startAdornment: (
-                                            <InputAdornment position="start">
-                                                <Search color={theme.palette.text.secondary} />
-                                            </InputAdornment>
-                                        ),
-                                    }}
-                                />
+                        <ListItemIcon onClick={(e) => {
+                            e.stopPropagation();
+                            if (node.children) toggleExpand(node.id);
+                        }}>
+                            {node.children ? (
+                                expanded[node.id] ? <ExpandMoreIcon /> : <ChevronRightIcon />
+                            ) : (
+                                <FileIcon />
                             )}
-                            value={filehash}
-                            onChange={handleInputChange}
-                            sx={{ mb: 3 }}
+                        </ListItemIcon>
+                        <Checkbox
+                            edge="start"
+                            checked={node.children
+                                ? node.children.every(child => selectedItems.includes(child.id))
+                                : selectedItems.includes(node.id)
+                            }
+                            tabIndex={-1}
+                            disableRipple
+                            sx={{ '& .MuiSvgIcon-root': { fontSize: 20 } }}
                         />
-                        <Button
-                            type="submit"
-                            fullWidth
-                            variant="contained"
-                            disabled={isLoading}
-                            sx={{
-                                py: 1.5,
-                                background: theme.palette.mode === 'dark'
-                                    ? 'linear-gradient(45deg, #90caf9 30%, #64b5f6 90%)'
-                                    : 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
-                                color: theme.palette.mode === 'dark' ? 'text.primary' : 'white',
-                                '&:hover': {
-                                    background: theme.palette.mode === 'dark'
-                                        ? 'linear-gradient(45deg, #82b1ff 30%, #448aff 90%)'
-                                        : 'linear-gradient(45deg, #1e88e5 30%, #1cb5e0 90%)',
-                                },
-                            }}
+                        <ListItemText primary={node.name} primaryTypographyProps={{ variant: 'body2' }} />
+                    </ListItem>
+                    {node.children && expanded[node.id] && renderTree(node.children)}
+                </motion.div>
+            ))}
+        </List>
+    );
+
+    return renderTree(data);
+};
+
+const EnhancedAISearch = () => {
+    const theme = useTheme();
+    const [selectedItems, setSelectedItems] = useState([]);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searchResults, setSearchResults] = useState(null);
+    const [sidebarOpen, setSidebarOpen] = useState(true);
+
+    const fileStructure = [
+        {
+            id: 'kb1',
+            name: 'Computer Science',
+            level: 0,
+            children: [
+                { id: 'file1', name: 'Practical Task.pdf', level: 1 },
+                { id: 'file2', name: 'Lecture Notes.docx', level: 1 },
+            ],
+        },
+        {
+            id: 'kb2',
+            name: 'Mathematics',
+            level: 0,
+            children: [
+                { id: 'file3', name: 'Calculus Basics.pdf', level: 1 },
+                { id: 'file4', name: 'Linear Algebra.pdf', level: 1 },
+            ],
+        },
+    ];
+
+    const handleSelect = (ids, isSelected) => {
+        if (isSelected) {
+            setSelectedItems(prev => [...new Set([...prev, ...ids])]);
+        } else {
+            setSelectedItems(prev => prev.filter(id => !ids.includes(id)));
+        }
+    };
+
+    const handleSearch = () => {
+        if (selectedItems.length === 0) {
+            alert('Please select at least one file or knowledge base');
+            return;
+        }
+        setSearchResults({
+            title: `AI-generated answer for "${searchQuery}"`,
+            content: `This is a simulated AI-generated answer based on the content of the selected files:
+      ${selectedItems.join(', ')}.
+      
+      The search query "${searchQuery}" has been processed across all selected files.
+      
+      In a real implementation, the AI would analyze the content of all selected files,
+      understand the context of the query, and provide a comprehensive response
+      synthesizing information from all relevant sources.`
+        });
+    };
+
+    const handleGenerateMindMap = () => {
+        console.log('Generating mind map for:', selectedItems);
+        // Implement mind map generation logic here
+    };
+
+    return (
+        <Box sx={{ display: 'flex', height: '100vh', bgcolor: 'background.default' }}>
+            {/* Sidebar */}
+            <AnimatePresence>
+                {sidebarOpen && (
+                    <MotionPaper
+                        initial={{ x: -300 }}
+                        animate={{ x: 0 }}
+                        exit={{ x: -300 }}
+                        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                        elevation={0}
+                        sx={{
+                            width: 300,
+                            height: '100%',
+                            overflowY: 'auto',
+                            bgcolor: 'background.paper',
+                            borderRight: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                            position: 'relative',
+                            zIndex: 1,
+                        }}
+                    >
+                        <Typography variant="h6" sx={{ p: 2, fontWeight: 'bold', color: 'primary.main' }}>
+                            Knowledge Base
+                        </Typography>
+                        <Divider sx={{ opacity: 0.6 }} />
+                        <TreeView
+                            data={fileStructure}
+                            onSelect={handleSelect}
+                            selectedItems={selectedItems}
+                        />
+                    </MotionPaper>
+                )}
+            </AnimatePresence>
+
+            {/* Main Content */}
+            <Box sx={{ flexGrow: 1, p: 3, overflowY: 'auto' }}>
+                <MotionBox
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.5 }}
+                    sx={{ display: 'flex', alignItems: 'center', mb: 3 }}
+                >
+                    <IconButton onClick={() => setSidebarOpen(!sidebarOpen)} sx={{ mr: 2 }}>
+                        <MenuIcon />
+                    </IconButton>
+                    <TextField
+                        fullWidth
+                        variant="outlined"
+                        placeholder="Enter your search query"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        InputProps={{
+                            startAdornment: <SearchIcon sx={{ mr: 1, color: 'text.secondary' }} />,
+                            sx: { borderRadius: 30, bgcolor: 'background.paper' },
+                        }}
+                    />
+                    <Button
+                        variant="contained"
+                        onClick={handleSearch}
+                        disabled={selectedItems.length === 0}
+                        sx={{
+                            ml: 2,
+                            borderRadius: 30,
+                            boxShadow: 'none',
+                            '&:hover': { boxShadow: 'none' },
+                        }}
+                    >
+                        Search
+                    </Button>
+                </MotionBox>
+
+                {selectedItems.length > 0 && (
+                    <MotionBox
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5 }}
+                        sx={{ mb: 3, p: 2, bgcolor: alpha(theme.palette.primary.main, 0.05), borderRadius: 2 }}
+                    >
+                        <Typography variant="body2">
+                            Selected: <strong>{selectedItems.length} item(s)</strong>
+                        </Typography>
+                    </MotionBox>
+                )}
+
+                <AnimatePresence>
+                    {searchResults && (
+                        <MotionPaper
+                            elevation={0}
+                            sx={{ p: 3, borderRadius: 2, bgcolor: alpha(theme.palette.background.paper, 0.8) }}
+                            initial={{ y: 50, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            exit={{ y: 50, opacity: 0 }}
+                            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
                         >
-                            {isLoading ? 'Searching...' : 'Search'}
-                        </Button>
-                    </form>
-
-                    <AnimatePresence>
-                        {error && (
-                            <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -20 }}
-                                transition={{ duration: 0.3 }}
+                            <Typography variant="h5" gutterBottom sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+                                {searchResults.title}
+                            </Typography>
+                            <Typography variant="body1" sx={{ whiteSpace: 'pre-line', mb: 3 }}>
+                                {searchResults.content}
+                            </Typography>
+                            <Button
+                                variant="outlined"
+                                startIcon={<MindMapIcon />}
+                                onClick={handleGenerateMindMap}
+                                sx={{ borderRadius: 30 }}
                             >
-                                <Alert
-                                    severity="error"
-                                    icon={<AlertCircle />}
-                                    sx={{ mt: 3 }}
-                                >
-                                    {error}
-                                </Alert>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
-
-                    <AnimatePresence>
-                        {results.length > 0 && (
-                            <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -20 }}
-                                transition={{ duration: 0.3 }}
-                            >
-                                <Box sx={{ mt: 4 }}>
-                                    <Typography variant="h5" component="h2" sx={{ mb: 2, fontWeight: 'medium' }}>
-                                        Search Results
-                                    </Typography>
-                                    <List>
-                                        {results.map((result, index) => (
-                                            <motion.div
-                                                key={index}
-                                                initial={{ opacity: 0, x: -20 }}
-                                                animate={{ opacity: 1, x: 0 }}
-                                                transition={{ duration: 0.3, delay: index * 0.1 }}
-                                            >
-                                                <ListItem
-                                                    sx={{
-                                                        bgcolor: 'background.paper',
-                                                        borderRadius: 2,
-                                                        mb: 2,
-                                                        transition: 'all 0.3s ease-in-out',
-                                                        '&:hover': {
-                                                            boxShadow: 3,
-                                                        },
-                                                    }}
-                                                >
-                                                    <ListItemIcon>
-                                                        <FileText color={theme.palette.primary.main} />
-                                                    </ListItemIcon>
-                                                    <ListItemText
-                                                        primary={result.file_name}
-                                                        secondary={
-                                                            <>
-                                                                <Typography component="span" variant="body2" color="text.primary">
-                                                                    Size: {result.file_size}
-                                                                </Typography>
-                                                                <br />
-                                                                <Typography component="span" variant="body2" color="text.primary">
-                                                                    Location: {result.location}
-                                                                </Typography>
-                                                            </>
-                                                        }
-                                                    />
-                                                </ListItem>
-                                            </motion.div>
-                                        ))}
-                                    </List>
-                                </Box>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
-                </Box>
-            </Paper>
-
-            <Paper
-                elevation={24}
-                sx={{
-                    width: '100%',
-                    maxWidth: 'md',
-                    borderRadius: 4,
-                    overflow: 'hidden',
-                    mt: 4,
-                    p: 4,
-                    transition: 'all 0.3s ease-in-out',
-                    '&:hover': {
-                        transform: 'scale(1.02)',
-                    },
-                    bgcolor: 'background.paper',
-                }}
-            >
-                <Typography variant="h5" component="h2" sx={{ mb: 2, fontWeight: 'medium', color: 'text.primary' }}>
-                    Search Statistics
-                </Typography>
-                <Box sx={{ height: 300 }}>
-                    <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={stats}>
-                            <CartesianGrid strokeDasharray="3 3" stroke={theme.palette.divider} />
-                            <XAxis dataKey="name" stroke={theme.palette.text.primary} />
-                            <YAxis stroke={theme.palette.text.primary} />
-                            <Tooltip
-                                contentStyle={{
-                                    backgroundColor: theme.palette.background.paper,
-                                    color: theme.palette.text.primary,
-                                    border: `1px solid ${theme.palette.divider}`,
-                                }}
-                            />
-                            <Line type="monotone" dataKey="searches" stroke={theme.palette.primary.main} strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 8 }} />
-                        </LineChart>
-                    </ResponsiveContainer>
-                </Box>
-            </Paper>
+                                Generate Mind Map
+                            </Button>
+                        </MotionPaper>
+                    )}
+                </AnimatePresence>
+            </Box>
         </Box>
     );
 };
 
-export default EnhancedQueryFile;
+export default EnhancedAISearch;

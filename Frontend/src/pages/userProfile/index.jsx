@@ -42,6 +42,7 @@ const StyledIconButton = styled(IconButton)(({ theme }) => ({
     },
 }));
 
+// eslint-disable-next-line react/prop-types
 const TabPanel = ({ children, value, index, ...other }) => (
     <div
         role="tabpanel"
