@@ -1,13 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { Download, Trash2, FileText, AlertCircle } from 'lucide-react';
-import { deleteAPI, downloadAPI, queryAllAPI } from "@/api/files.jsx";
-import { getToken } from "@/utils/index.jsx";
-import { ThemeProvider, useTheme } from '@mui/material/styles';
+import React, { useState } from 'react';
 import {
     Box,
     Typography,
-    TextField,
-    Button,
     Table,
     TableBody,
     TableCell,
@@ -16,196 +10,180 @@ import {
     TableRow,
     Paper,
     IconButton,
-    CircularProgress,
-    Alert,
+    TextField,
+    InputAdornment,
+    Select,
+    MenuItem,
+    Breadcrumbs,
+    Pagination,
 } from '@mui/material';
+import {
+    Search as SearchIcon,
+    GetApp as DownloadIcon,
+    Visibility as PreviewIcon,
+    Description as FileIcon,
+    Folder as FolderIcon,
+} from '@mui/icons-material';
 
-const EnhancedUserFiles = () => {
-    const [limit, setLimit] = useState(10);
-    const [files, setFiles] = useState([]);
-    const [error, setError] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
-    const theme = useTheme();
+const rootFiles = [
+    { name: 'knowledgebase', type: 'folder' },
+    { name: 'document1.txt', type: 'file', size: '10 KB', uploadDate: '2023-01-01' },
+];
 
-    const handleInputChange = (e) => {
-        setLimit(e.target.value);
+const knowledgebaseFiles = [
+    { name: 'computer', type: 'folder' },
+    { name: 'biology', type: 'folder' },
+];
+
+const computerFiles = [
+    { name: 'Practical Task.pdf', type: 'file', size: '178.17 KB', uploadDate: '20/09/2024 21:47:15', knowledgeBase: 'computer' },
+    { name: 'Computer Science 101.docx', type: 'file', size: '2.5 MB', uploadDate: '19/09/2024 15:30:00', knowledgeBase: 'computer' },
+];
+
+export default function FileManager() {
+    const [currentPath, setCurrentPath] = useState([]);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [itemsPerPage, setItemsPerPage] = useState(10);
+    const [page, setPage] = useState(1);
+
+    const getCurrentFiles = () => {
+        if (currentPath.length === 0) return rootFiles;
+        if (currentPath.length === 1 && currentPath[0] === 'knowledgebase') return knowledgebaseFiles;
+        if (currentPath.length === 2 && currentPath[1] === 'computer') return computerFiles;
+        return [];
     };
 
-    const fetchFiles = async () => {
-        setIsLoading(true);
-        setError('');
-        try {
-            const limitInt = parseInt(limit, 10);
-            console.log("Token before request:", getToken());
-            const data = await queryAllAPI({
-                limit: limitInt,
-            });
-            if (Array.isArray(data)) {
-                setFiles(data);
-            } else {
-                console.error('Received data is not an array:', data);
-                setFiles([]);
-                setError('Invalid data received from server');
-            }
-        } catch (error) {
-            console.error('Error fetching files:', error);
-            setFiles([]);
-            setError('Failed to fetch files. Please try again.');
-        } finally {
-            setIsLoading(false);
-        }
+    const files = getCurrentFiles();
+
+    const handleFileClick = (fileName) => {
+        setCurrentPath([...currentPath, fileName]);
     };
 
-    useEffect(() => {
-        fetchFiles();
-    }, [limit]);
-
-    const handleDownload = async (fileHash) => {
-        try {
-            const response = await downloadAPI({ filehash: fileHash });
-            console.log('Download response:', response);
-            // Handle the download response here
-        } catch (error) {
-            console.error('Error downloading file:', error);
-            setError('Failed to download file. Please try again.');
-        }
+    const handleBreadcrumbClick = (index) => {
+        setCurrentPath(currentPath.slice(0, index + 1));
     };
 
-    const handleDelete = async (fileHash) => {
-        try {
-            const response = await deleteAPI({ filehash: fileHash });
-            console.log('Delete response:', response);
-            setFiles(files.filter(file => file.FileHash !== fileHash));
-        } catch (error) {
-            console.error('Error deleting file:', error);
-            setError('Failed to delete file. Please try again.');
-        }
-    };
+    const filteredFiles = files.filter(file =>
+        file.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    const pageCount = Math.ceil(filteredFiles.length / itemsPerPage);
 
     return (
-        <ThemeProvider theme={theme}>
-            <Box sx={{
-                minHeight: '100vh',
-                bgcolor: 'background.default',
-                py: 6,
-                px: { xs: 2, sm: 3, md: 4 },
-            }}>
-                <Paper elevation={24} sx={{
-                    maxWidth: 'xl',
-                    mx: 'auto',
-                    borderRadius: 4,
-                    overflow: 'hidden',
-                }}>
-                    <Box sx={{ p: 4 }}>
-                        <Typography variant="h4" component="h1" align="center" sx={{
-                            mb: 3,
-                            fontWeight: 'bold',
-                            background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
-                            WebkitBackgroundClip: 'text',
-                            WebkitTextFillColor: 'transparent'
-                        }}>
-                            User Uploaded Files
-                        </Typography>
+        <Box sx={{ width: '100%', p: 3 }}>
+            <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 2 }}>
+                <Typography
+                    color="inherit"
+                    style={{ cursor: 'pointer' }}
+                    onClick={() => setCurrentPath([])}
+                >
+                    root
+                </Typography>
+                {currentPath.map((path, index) => (
+                    <Typography
+                        key={path}
+                        color={index === currentPath.length - 1 ? 'text.primary' : 'inherit'}
+                        style={{ cursor: 'pointer' }}
+                        onClick={() => handleBreadcrumbClick(index)}
+                    >
+                        {path}
+                    </Typography>
+                ))}
+            </Breadcrumbs>
 
-                        <Box component="form" sx={{ mb: 4 }}>
-                            <Typography variant="subtitle1" sx={{ mb: 1 }}>
-                                Number of Files:
-                            </Typography>
-                            <Box sx={{ display: 'flex' }}>
-                                <TextField
-                                    type="number"
-                                    id="limit"
-                                    name="limit"
-                                    inputProps={{ min: 1, max: 100 }}
-                                    value={limit}
-                                    onChange={handleInputChange}
-                                    required
-                                    sx={{ flexGrow: 1, mr: 1 }}
-                                />
-                                <Button
-                                    onClick={fetchFiles}
-                                    variant="contained"
-                                    sx={{
-                                        background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
-                                        color: 'white',
-                                    }}
-                                >
-                                    Fetch Files
-                                </Button>
-                            </Box>
-                        </Box>
-
-                        {error && (
-                            <Alert severity="error" icon={<AlertCircle />} sx={{ mb: 2 }}>
-                                {error}
-                            </Alert>
-                        )}
-
-                        {isLoading ? (
-                            <Box sx={{ display: 'flex', justifyContent: 'center', my: 8 }}>
-                                <CircularProgress />
-                            </Box>
-                        ) : (
-                            <TableContainer component={Paper} sx={{ maxHeight: 440 }}>
-                                <Table stickyHeader aria-label="user files table">
-                                    <TableHead>
-                                        <TableRow>
-                                            <TableCell>File Name</TableCell>
-                                            <TableCell>File Hash</TableCell>
-                                            <TableCell>File Size (Bytes)</TableCell>
-                                            <TableCell>Upload Time</TableCell>
-                                            <TableCell>Actions</TableCell>
-                                        </TableRow>
-                                    </TableHead>
-                                    <TableBody>
-                                        {files.map((fileMeta, index) => (
-                                            <TableRow key={index} hover>
-                                                <TableCell>
-                                                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                                        <FileText sx={{ mr: 1, color: 'text.secondary' }} />
-                                                        <Typography variant="body2">{fileMeta.FileName}</Typography>
-                                                    </Box>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                                                        {fileMeta.FileHash}
-                                                    </Typography>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                                                        {fileMeta.FileSize}
-                                                    </Typography>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                                                        {fileMeta.UploadAt}
-                                                    </Typography>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <IconButton
-                                                        onClick={() => handleDownload(fileMeta.FileHash)}
-                                                        color="primary"
-                                                    >
-                                                        <Download />
-                                                    </IconButton>
-                                                    <IconButton
-                                                        onClick={() => handleDelete(fileMeta.FileHash)}
-                                                        color="error"
-                                                    >
-                                                        <Trash2 />
-                                                    </IconButton>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </TableContainer>
-                        )}
-                    </Box>
-                </Paper>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+                <TextField
+                    placeholder="Search files"
+                    variant="outlined"
+                    size="small"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    InputProps={{
+                        startAdornment: (
+                            <InputAdornment position="start">
+                                <SearchIcon />
+                            </InputAdornment>
+                        ),
+                    }}
+                />
+                <Select
+                    value={itemsPerPage}
+                    onChange={(e) => setItemsPerPage(e.target.value)}
+                    size="small"
+                >
+                    <MenuItem value={10}>10 items/page</MenuItem>
+                    <MenuItem value={20}>20 items/page</MenuItem>
+                    <MenuItem value={50}>50 items/page</MenuItem>
+                </Select>
             </Box>
-        </ThemeProvider>
-    );
-};
 
-export default EnhancedUserFiles;
+            <TableContainer component={Paper} elevation={0}>
+                <Table sx={{ minWidth: 650 }} aria-label="file table">
+                    <TableHead>
+                        <TableRow>
+                            <TableCell>Name</TableCell>
+                            <TableCell>Upload Date</TableCell>
+                            <TableCell>Size</TableCell>
+                            <TableCell>Knowledge Base</TableCell>
+                            <TableCell>Actions</TableCell>
+                        </TableRow>
+                    </TableHead>
+                    <TableBody>
+                        {filteredFiles
+                            .slice((page - 1) * itemsPerPage, page * itemsPerPage)
+                            .map((file) => (
+                                <TableRow key={file.name}>
+                                    <TableCell component="th" scope="row">
+                                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                            {file.type === 'folder' ? (
+                                                <FolderIcon sx={{ mr: 1, color: 'primary.main' }} />
+                                            ) : (
+                                                <FileIcon sx={{ mr: 1, color: 'error.main' }} />
+                                            )}
+                                            <Typography
+                                                style={{ cursor: file.type === 'folder' ? 'pointer' : 'default' }}
+                                                onClick={() => file.type === 'folder' && handleFileClick(file.name)}
+                                            >
+                                                {file.name}
+                                            </Typography>
+                                        </Box>
+                                    </TableCell>
+                                    <TableCell>{file.uploadDate || '-'}</TableCell>
+                                    <TableCell>{file.size || '-'}</TableCell>
+                                    <TableCell>
+                                        {file.knowledgeBase && (
+                                            <Box sx={{ display: 'inline-block', bgcolor: 'primary.main', color: 'white', px: 1, py: 0.5, borderRadius: 1 }}>
+                                                {file.knowledgeBase}
+                                            </Box>
+                                        )}
+                                    </TableCell>
+                                    <TableCell>
+                                        {file.type === 'file' && (
+                                            <>
+                                                <IconButton size="small" aria-label="download">
+                                                    <DownloadIcon />
+                                                </IconButton>
+                                                <IconButton size="small" aria-label="preview">
+                                                    <PreviewIcon />
+                                                </IconButton>
+                                            </>
+                                        )}
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                    </TableBody>
+                </Table>
+            </TableContainer>
+
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
+                <Typography variant="body2">Total: {filteredFiles.length} item(s)</Typography>
+                <Pagination
+                    count={pageCount}
+                    page={page}
+                    onChange={(event, value) => setPage(value)}
+                    color="primary"
+                />
+            </Box>
+        </Box>
+    );
+}

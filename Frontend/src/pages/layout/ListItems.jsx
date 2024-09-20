@@ -30,11 +30,11 @@ export const mainListItems = (
             </ListItemIcon>
             <ListItemText primary="Dashboard" />
         </ListItemButton>
-        <ListItemButton component={NavLink} to="/upload" sx={activeStyle}>
+        <ListItemButton component={NavLink} to="/knowledge-base" sx={activeStyle}>
             <ListItemIcon>
                 <CloudUpload />
             </ListItemIcon>
-            <ListItemText primary="Upload" />
+            <ListItemText primary="Knowledge-Base" />
         </ListItemButton>
         <ListItemButton component={NavLink} to="/queryfile" sx={activeStyle}>
             <ListItemIcon>

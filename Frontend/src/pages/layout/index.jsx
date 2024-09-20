@@ -1,26 +1,33 @@
-import React, { useState } from 'react';
-import { styled } from '@mui/material/styles';
-import Box from '@mui/material/Box';
-import MuiAppBar from '@mui/material/AppBar';
-import MuiDrawer from '@mui/material/Drawer';
-import Toolbar from '@mui/material/Toolbar';
-import IconButton from '@mui/material/IconButton';
-import Typography from '@mui/material/Typography';
-import Divider from '@mui/material/Divider';
-import List from '@mui/material/List';
-import ListItem from '@mui/material/ListItem';
-import ListItemIcon from '@mui/material/ListItemIcon';
-import ListItemText from '@mui/material/ListItemText';
-import Dialog from '@mui/material/Dialog';
-import DialogActions from '@mui/material/DialogActions';
-import DialogContent from '@mui/material/DialogContent';
-import DialogContentText from '@mui/material/DialogContentText';
-import DialogTitle from '@mui/material/DialogTitle';
-import Button from '@mui/material/Button';
-import { Menu, ChevronLeft, AccountCircle, Brightness4, Brightness7, ExitToApp } from '@mui/icons-material';
+import React, { useState, useMemo } from 'react';
+import { styled, ThemeProvider, createTheme } from '@mui/material/styles';
+import {
+    Box,
+    AppBar as MuiAppBar,
+    Drawer as MuiDrawer,
+    Toolbar,
+    IconButton,
+    Typography,
+    Divider,
+    List,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogContentText,
+    DialogTitle,
+    Button,
+    CssBaseline,
+    useMediaQuery,
+} from '@mui/material';
+import {
+    Menu,
+    ChevronLeft,
+    AccountCircle,
+    Brightness4,
+    Brightness7,
+    ExitToApp,
+} from '@mui/icons-material';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
-import CssBaseline from '@mui/material/CssBaseline';
+import { motion, AnimatePresence } from 'framer-motion';
 import { mainListItems, secondaryListItems } from './ListItems';
 
 const drawerWidth = 240;
@@ -69,6 +76,8 @@ const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'open' 
     }),
 );
 
+const MotionBox = motion(Box);
+
 function Copyright(props) {
     return (
         <Typography variant="body2" color="text.secondary" align="center" {...props}>
@@ -83,11 +92,48 @@ function Copyright(props) {
 }
 
 const EnhancedLayout = () => {
-    const [open, setOpen] = useState(true);
+    const [open, setOpen] = useState(false);
     const [darkMode, setDarkMode] = useState(false);
     const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
     const navigate = useNavigate();
     const location = useLocation();
+
+    const theme = useMemo(
+        () =>
+            createTheme({
+                palette: {
+                    mode: darkMode ? 'dark' : 'light',
+                    primary: {
+                        main: '#3f51b5',
+                    },
+                    secondary: {
+                        main: '#f50057',
+                    },
+                    background: {
+                        default: darkMode ? '#121212' : '#f5f5f5',
+                        paper: darkMode ? '#1e1e1e' : '#ffffff',
+                    },
+                },
+                typography: {
+                    fontFamily: 'Roboto, Arial, sans-serif',
+                },
+                shape: {
+                    borderRadius: 8,
+                },
+                components: {
+                    MuiButton: {
+                        styleOverrides: {
+                            root: {
+                                textTransform: 'none',
+                            },
+                        },
+                    },
+                },
+            }),
+        [darkMode]
+    );
+
+    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
     const toggleDrawer = () => {
         setOpen(!open);
@@ -114,37 +160,20 @@ const EnhancedLayout = () => {
 
     const handleLogoutConfirm = () => {
         setLogoutDialogOpen(false);
-        // Implement logout logic here
         console.log('User logged out');
-        navigate('/login'); // Redirect to login page after logout
+        navigate('/login');
     };
 
     const handleLogoutCancel = () => {
         setLogoutDialogOpen(false);
     };
 
-    const theme = createTheme({
-        palette: {
-            mode: darkMode ? 'dark' : 'light',
-            primary: {
-                main: '#3f51b5',
-            },
-            secondary: {
-                main: '#f50057',
-            },
-        },
-    });
-
     return (
         <ThemeProvider theme={theme}>
             <Box sx={{ display: 'flex' }}>
                 <CssBaseline />
                 <AppBar position="absolute" open={open} elevation={0}>
-                    <Toolbar
-                        sx={{
-                            pr: '24px',
-                        }}
-                    >
+                    <Toolbar sx={{ pr: '24px' }}>
                         <IconButton
                             edge="start"
                             color="inherit"
@@ -189,34 +218,68 @@ const EnhancedLayout = () => {
                     </Toolbar>
                     <Divider />
                     <List component="nav" sx={{ flexGrow: 1 }}>
-                        {mainListItems}
+                        <AnimatePresence>
+                            <MotionBox
+                                initial={{ opacity: 0, y: -20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -20 }}
+                                transition={{ duration: 0.3 }}
+                            >
+                                {mainListItems}
+                            </MotionBox>
+                        </AnimatePresence>
                         <Divider sx={{ my: 1 }} />
-                        {secondaryListItems}
+                        <AnimatePresence>
+                            <MotionBox
+                                initial={{ opacity: 0, y: -20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -20 }}
+                                transition={{ duration: 0.3 }}
+                            >
+                                {secondaryListItems}
+                            </MotionBox>
+                        </AnimatePresence>
                     </List>
                     <Divider />
                     <List>
-                        <ListItem button onClick={handleLogout}>
-                            <ListItemIcon>
-                                <ExitToApp />
-                            </ListItemIcon>
-                            <ListItemText primary="Logout" />
-                        </ListItem>
+                        <MotionBox
+                            initial={{ opacity: 0, y: -20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -20 }}
+                            transition={{ duration: 0.3 }}
+                        >
+                            <Button
+                                fullWidth
+                                startIcon={<ExitToApp />}
+                                onClick={handleLogout}
+                                sx={{ justifyContent: 'flex-start', pl: 2 }}
+                            >
+                                Logout
+                            </Button>
+                        </MotionBox>
                     </List>
                 </Drawer>
                 <Box
                     component="main"
                     sx={{
-                        backgroundColor: (theme) =>
-                            theme.palette.mode === 'light'
-                                ? theme.palette.grey[100]
-                                : theme.palette.grey[900],
+                        backgroundColor: 'background.default',
                         flexGrow: 1,
                         height: '100vh',
                         overflow: 'auto',
+                        transition: theme.transitions.create('background-color', {
+                            duration: theme.transitions.duration.standard,
+                        }),
                     }}
                 >
                     <Toolbar />
-                    <Outlet />
+                    <MotionBox
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 20 }}
+                        transition={{ duration: 0.3 }}
+                    >
+                        <Outlet />
+                    </MotionBox>
                     <Copyright sx={{ pt: 4 }} />
                 </Box>
             </Box>
@@ -225,6 +288,11 @@ const EnhancedLayout = () => {
                 onClose={handleLogoutCancel}
                 aria-labelledby="alert-dialog-title"
                 aria-describedby="alert-dialog-description"
+                PaperProps={{
+                    style: {
+                        borderRadius: theme.shape.borderRadius,
+                    },
+                }}
             >
                 <DialogTitle id="alert-dialog-title">
                     {"Confirm Logout"}

@@ -4,7 +4,7 @@ import {createBrowserRouter} from "react-router-dom";
 // import AuthRoute from "../components/AuthRoute";
 import Dashboard from "../pages/dashboard";
 import Layout from "@/pages/layout/index.jsx";
-import Upload from "@/pages/upload/index.jsx";
+import KnowledgeBaseManager from "@/pages/knowledgeBase/index.jsx";
 import QueryFile from "@/pages/queryfile/index.jsx";
 import UserFiles from "@/pages/userfile/index.jsx";
 import UserProfile from "@/pages/userProfile/index.jsx";
@@ -14,9 +14,9 @@ const router = createBrowserRouter([
     {
         path: '/',
         element: (
-            // <AuthRoute>
+             // <AuthRoute>
                 <Layout/>
-            // </AuthRoute>
+             // </AuthRoute>
         ),
         children : [
             {
@@ -25,8 +25,8 @@ const router = createBrowserRouter([
                 element: <Dashboard/>
             },
             {
-                path: 'upload',
-                element: <Upload/>
+                path: 'knowledge-base',
+                element: <KnowledgeBaseManager/>
             },
             {
                 path:'queryfile',
