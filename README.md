@@ -1,5 +1,9 @@
 # Distributed File System on Cloud
 
+<p align="center">
+  <img src="./Frontend/public/images/logo.png" alt="Project Logo" width="200"/>
+</p>
+
 ![Status](https://img.shields.io/badge/status-active-success.svg)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
@@ -19,7 +23,6 @@ A cloud-based distributed file system designed for scalability, reliability, and
 - [Contact](#contact)
 
 ---
-
 ## Overview
 
 This project is a cloud-based distributed file system built using cutting-edge technologies to ensure robust data management, seamless file storage and retrieval processes across distributed environments, advanced document processing, search capabilities, and efficient service discovery and management.
