@@ -1,6 +1,4 @@
-export default function Component() {
-  return (
-    <div className="max-w-4xl mx-auto p-6 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200">
+<div className="max-w-4xl mx-auto p-6 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200">
       <h1 className="text-4xl font-bold mb-4 text-center">🌐 Distributed File System on Cloud</h1>
       
       <p className="text-center mb-6">
@@ -143,5 +141,3 @@ export default function Component() {
         For any inquiries, please contact: <a href="mailto:songguocheng348@gmail.com" className="text-blue-500 hover:underline">songguocheng348@gmail.com</a>
       </p>
     </div>
-  )
-}
