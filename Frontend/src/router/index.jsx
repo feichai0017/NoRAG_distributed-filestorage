@@ -8,6 +8,7 @@ import KnowledgeBaseManager from "@/pages/knowledgeBase/index.jsx";
 import QueryFile from "@/pages/queryfile/index.jsx";
 import UserFiles from "@/pages/userfile/index.jsx";
 import UserProfile from "@/pages/userProfile/index.jsx";
+import Settings from "@/pages/setting/index.jsx";
 
 
 const router = createBrowserRouter([
@@ -50,6 +51,10 @@ const router = createBrowserRouter([
     {
         path: 'userprofile',
         element: <UserProfile/>
+    },
+    {
+        path: 'settings',
+        element: <Settings/>
     }
 ]);
 
