@@ -67,7 +67,7 @@ This project is a cloud-based distributed file system built using cutting-edge t
 
 ## System Architecture
 
-![System Architecture](/usr/local/Distributed_system/cloud_distributed_storage/Architect.png)
+![System Architecture](/Architect.png)
 
 The system uses a microservices architecture with loosely coupled components, enabling independent scaling and development. Containerization and orchestration manage resources efficiently and ensure seamless integration between services.
 
