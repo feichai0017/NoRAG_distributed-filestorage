@@ -4,7 +4,7 @@
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
 
-A cloud-based distributed file system designed for scalability, reliability, and performance.
+A cloud-based distributed file system designed for scalability, reliability, and performance, with advanced storage, retrieval capabilities, and service discovery.
 
 ---
 
@@ -22,14 +22,14 @@ A cloud-based distributed file system designed for scalability, reliability, and
 
 ## Overview
 
-This project is a cloud-based distributed file system built using cutting-edge technologies to ensure robust data management and seamless file storage and retrieval processes across distributed environments.
+This project is a cloud-based distributed file system built using cutting-edge technologies to ensure robust data management, seamless file storage and retrieval processes across distributed environments, advanced document processing, search capabilities, and efficient service discovery and management.
 
 ---
 
 ## Tech Stack
 
 ### Operating System
-- Linux (CentOS 9)
+- x86 Linux 
 
 ### Frontend
 - **Framework:** React.js
@@ -42,19 +42,33 @@ This project is a cloud-based distributed file system built using cutting-edge t
 ### Programming Languages
 - Go
 - JavaScript
+- Python
 
 ### Microservices
 - **File Management:** Handles file upload, download, and management operations
 - **Framework:** go-micro
 - **Communication:** gRPC
 
+### Service Discovery and Configuration
+- **Consul:** Service registry, discovery, and distributed key-value store
+
 ### Distributed Storage
-- **Ceph:** Unified, distributed storage system
-- **AWS S3:** Integrated for additional cloud storage capabilities
+- **Block Storage:**
+  - Ceph: For frequently modified documents
+  - AWS EBS: Backup for block storage
+- **Object Storage:**
+  - MinIO: Primary object storage for immutable files (e.g., PDFs, images)
+  - AWS S3: Backup for object storage
 
 ### Databases
 - **MySQL 5.7:** Deployed using Docker with master-slave replication
 - **Redis 6.2.7:** In-memory key-value store for caching
+
+### Search and Analytics
+- **Elasticsearch:** Full-text search and vector database for document indexing
+
+### Document Processing
+- **Python:** RAG (Retrieval-Augmented Generation) service and document scanning functionality
 
 ### Message Queue
 - RabbitMQ
@@ -69,7 +83,13 @@ This project is a cloud-based distributed file system built using cutting-edge t
 
 ![System Architecture](/Architect.png)
 
-The system uses a microservices architecture with loosely coupled components, enabling independent scaling and development. Containerization and orchestration manage resources efficiently and ensure seamless integration between services.
+The system uses a microservices architecture with loosely coupled components, enabling independent scaling and development. Containerization and orchestration manage resources efficiently and ensure seamless integration between services. Consul provides service discovery and configuration management across the distributed system.
+
+### Consul Setup
+- **Version:** Consul 1.11.0
+- **Deployment:** Docker container
+- **UI Access:** `localhost:8500`
+- **DNS Interface:** `localhost:8600`
 
 ### MySQL Setup
 - **Version:** MySQL 5.7
@@ -84,15 +104,29 @@ The system uses a microservices architecture with loosely coupled components, en
 - **Deployment:** Docker container
 - **Access:** `localhost:6379`
 
-### Ceph Storage
+### Ceph Block Storage
 - **Ceph Monitor:** `172.20.0.10/16`
 - **Ceph OSD:** `172.20.0.11, 172.20.0.12, 172.20.0.13`
 - **Ceph MGR:** `172.20.0.14:7000`
-- **Ceph RGW:** `172.20.0.15:7480`
+- **Ceph RBD:** For block storage of frequently modified documents
 
-### AWS S3 Integration
-- Ceph RGW configured to provide S3-compatible API
-- Interact with Ceph using AWS CLI or SDKs
+### MinIO Object Storage
+- **Deployment:** Docker container
+- **Access:** `localhost:9000`
+- **Console:** `localhost:9001`
+
+### AWS Integration
+- **AWS EBS:** Backup for Ceph block storage
+- **AWS S3:** Backup for MinIO object storage
+
+### Elasticsearch Setup
+- **Version:** Elasticsearch 7.14.0
+- **Deployment:** Docker container
+- **Access:** `localhost:9200`
+
+### Python Services
+- **RAG Service:** Retrieval-Augmented Generation for advanced document processing
+- **Document Scanning:** OCR and document analysis capabilities
 
 ### RabbitMQ Setup
 - **Version:** RabbitMQ 3.9.7
@@ -104,49 +138,58 @@ The system uses a microservices architecture with loosely coupled components, en
 ## Installation
 
 1. **Clone the repository:**
- ```bash
- git clone https://github.com/feichai0017/distributed-file-system.git
- cd distributed-file-system
- ```
+   ```bash
+   git clone https://github.com/feichai0017/distributed-file-system.git
+   cd distributed-file-system
+   ```
 
 2. **Set up Docker containers:**
+   ```bash
+   docker-compose up -d
+   ```
 
-  ```shellscript
-  docker-compose -f docker-compose-mysql.yml up -d
-  ```
+3. **Start Consul:**
+   ```bash
+   docker run -d --name=consul -p 8500:8500 -p 8600:8600/udp consul:1.11.0 agent -server -ui -node=server-1 -bootstrap-expect=1 -client=0.0.0.0
+   ```
 
+4. **Configure Ceph block storage:**
+   Follow the official Ceph documentation to set up the block storage system.
 
-3. **Install and run Redis:**
+5. **Set up MinIO object storage:**
+   ```bash
+   docker run -p 9000:9000 -p 9001:9001 minio/minio server /data --console-address ":9001"
+   ```
 
-  ```shellscript
-  wget http://download.redis.io/releases/redis-6.2.7.tar.gz
-  tar xzf redis-6.2.7.tar.gz
-  cd redis-6.2.7
-  make
-  src/redis-server
-  ```
+6. **Configure AWS services:**
+   Set up AWS EBS and S3 for backup purposes using AWS CLI or SDKs.
 
+7. **Start Elasticsearch:**
+   ```bash
+   docker run -p 9200:9200 -p 9300:9300 -e "discovery.type=single-node" docker.elastic.co/elasticsearch/elasticsearch:7.14.0
+   ```
 
-4. **Configure Ceph storage:**
-  Follow the official Ceph documentation to set up the distributed storage system.
+8. **Set up Python services:**
+   ```bash
+   pip install -r requirements.txt
+   python rag_service.py
+   python document_scanner.py
+   ```
 
-5.**Start the application:**
-To start all services, run the following command:
+9. **Register services with Consul:**
+   Update your service configurations to register with Consul upon startup.
 
-```shellscript
-./service/start-all.sh
-```
-
-This script will initialize and start all necessary services for the distributed file system.
-
-
-
+10. **Start the application:**
+    To start all services, run the following command:
+    ```bash
+    ./service/start-all.sh
+    ```
 
 ---
 
 ## Usage
 
-The system can be accessed via a web interface or API. Users can upload, manage, and retrieve files with features such as file versioning, access controls, and real-time status updates.
+The system can be accessed via a web interface or API. Users can upload, manage, and retrieve files with features such as file versioning, access controls, and real-time status updates. The system provides advanced search capabilities, document processing, and intelligent retrieval using RAG technology. Services are dynamically discovered and managed through Consul, ensuring high availability and scalability.
 
 ---
 
@@ -165,7 +208,3 @@ This project is licensed under the MIT License. See the `LICENSE` file for detai
 ## Contact
 
 For inquiries, please contact: [songguocheng348@gmail.com](mailto:songguocheng348@gmail.com)
-
-  ```plaintext
-  
-  ```
