@@ -104,6 +104,68 @@ The system uses a microservices architecture with loosely coupled components, en
 ## Installation
 
 1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/feichai0017/distributed-file-system.git
-   cd distributed-file-system
+ ```bash
+ git clone https://github.com/feichai0017/distributed-file-system.git
+ cd distributed-file-system
+ ```
+
+2. **Set up Docker containers:**
+
+  ```shellscript
+  docker-compose -f docker-compose-mysql.yml up -d
+  ```
+
+
+3. **Install and run Redis:**
+
+  ```shellscript
+  wget http://download.redis.io/releases/redis-6.2.7.tar.gz
+  tar xzf redis-6.2.7.tar.gz
+  cd redis-6.2.7
+  make
+  src/redis-server
+  ```
+
+
+4. **Configure Ceph storage:**
+  Follow the official Ceph documentation to set up the distributed storage system.
+
+5.**Start the application:**
+To start all services, run the following command:
+
+```shellscript
+./service/start-all.sh
+```
+
+This script will initialize and start all necessary services for the distributed file system.
+
+
+
+
+---
+
+## Usage
+
+The system can be accessed via a web interface or API. Users can upload, manage, and retrieve files with features such as file versioning, access controls, and real-time status updates.
+
+---
+
+## Contributing
+
+Contributions are welcome. Please follow the guidelines in the `CONTRIBUTING.md` file to submit issues or pull requests.
+
+---
+
+## License
+
+This project is licensed under the MIT License. See the `LICENSE` file for details.
+
+---
+
+## Contact
+
+For inquiries, please contact: [songguocheng348@gmail.com](mailto:songguocheng348@gmail.com)
+
+  ```plaintext
+  
+  ```
