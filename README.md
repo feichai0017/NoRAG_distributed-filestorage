@@ -1,137 +1,147 @@
+export default function Component() {
+  return (
+    <div className="max-w-4xl mx-auto p-6 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200">
+      <h1 className="text-4xl font-bold mb-4 text-center">🌐 Distributed File System on Cloud</h1>
+      
+      <p className="text-center mb-6">
+        <img src="https://img.shields.io/badge/status-active-success.svg" alt="Status" className="inline-block mr-2" />
+        <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License" className="inline-block mr-2" />
+        <img src="https://img.shields.io/badge/version-1.0.0-blue.svg" alt="Version" className="inline-block" />
+      </p>
 
+      <h2 className="text-2xl font-semibold mb-4">📋 Table of Contents</h2>
+      <ul className="list-disc pl-6 mb-6">
+        <li><a href="#overview" className="text-blue-500 hover:underline">Overview</a></li>
+        <li><a href="#tech-stack" className="text-blue-500 hover:underline">Tech Stack</a></li>
+        <li><a href="#system-architecture" className="text-blue-500 hover:underline">System Architecture</a></li>
+        <li><a href="#installation" className="text-blue-500 hover:underline">Installation</a></li>
+        <li><a href="#usage" className="text-blue-500 hover:underline">Usage</a></li>
+        <li><a href="#contributing" className="text-blue-500 hover:underline">Contributing</a></li>
+        <li><a href="#license" className="text-blue-500 hover:underline">License</a></li>
+        <li><a href="#contact" className="text-blue-500 hover:underline">Contact</a></li>
+      </ul>
 
-# Distributed File System on Cloud
+      <h2 id="overview" className="text-2xl font-semibold mb-4">🔍 Overview</h2>
+      <p className="mb-6">
+        This project is a cloud-based distributed file system designed for scalability, reliability, and performance. 
+        The system is built using cutting-edge technologies to ensure robust data management and seamless file storage 
+        and retrieval processes across distributed environments.
+      </p>
 
-## Overview
+      <h2 id="tech-stack" className="text-2xl font-semibold mb-4">🛠️ Tech Stack</h2>
+      <div className="grid grid-cols-2 gap-4 mb-6">
+        <div>
+          <h3 className="text-xl font-semibold mb-2">🖥️ Frontend</h3>
+          <ul className="list-disc pl-6">
+            <li>React.js</li>
+            <li>CSS, Bootstrap</li>
+          </ul>
+        </div>
+        <div>
+          <h3 className="text-xl font-semibold mb-2">⚙️ Backend</h3>
+          <ul className="list-disc pl-6">
+            <li>Gin (Go web framework)</li>
+            <li>Swagger (API documentation)</li>
+          </ul>
+        </div>
+        <div>
+          <h3 className="text-xl font-semibold mb-2">🔧 Microservices</h3>
+          <ul className="list-disc pl-6">
+            <li>go-micro</li>
+            <li>gRPC</li>
+          </ul>
+        </div>
+        <div>
+          <h3 className="text-xl font-semibold mb-2">💾 Storage</h3>
+          <ul className="list-disc pl-6">
+            <li>Ceph</li>
+            <li>AWS S3</li>
+          </ul>
+        </div>
+        <div>
+          <h3 className="text-xl font-semibold mb-2">🗄️ Databases</h3>
+          <ul className="list-disc pl-6">
+            <li>MySQL 5.7</li>
+            <li>Redis 6.2.7</li>
+          </ul>
+        </div>
+        <div>
+          <h3 className="text-xl font-semibold mb-2">🐳 Containerization</h3>
+          <ul className="list-disc pl-6">
+            <li>Docker</li>
+            <li>Kubernetes</li>
+          </ul>
+        </div>
+      </div>
 
-This project is a cloud-based distributed file system designed for scalability, reliability, and performance. The system is built using cutting-edge technologies to ensure robust data management and seamless file storage and retrieval processes across distributed environments.
+      <h2 id="system-architecture" className="text-2xl font-semibold mb-4">🏗️ System Architecture</h2>
+      <img src="/usr/local/Distributed_system/cloud_distributed_storage/microservice_interact_archi.png" alt="System Architecture" className="w-full mb-4" />
+      <p className="mb-6">
+        The system is designed with a microservices architecture, where each component is loosely coupled, 
+        enabling independent scaling and development. The architecture leverages containerization and 
+        orchestration to manage resources efficiently and ensure seamless integration between services.
+      </p>
 
-## Tech Stack
+      <h2 id="installation" className="text-2xl font-semibold mb-4">🚀 Installation</h2>
+      <div className="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg mb-6">
+        <p className="font-semibold mb-2">1. Clone the repository:</p>
+        <pre className="bg-gray-200 dark:bg-gray-600 p-2 rounded">
+          <code>
+            git clone https://github.com/your-repo/distributed-file-system.git
+            cd distributed-file-system
+          </code>
+        </pre>
+        
+        <p className="font-semibold mt-4 mb-2">2. Set up Docker containers:</p>
+        <pre className="bg-gray-200 dark:bg-gray-600 p-2 rounded">
+          <code>
+            docker-compose -f docker-compose-mysql.yml up -d
+          </code>
+        </pre>
+        
+        <p className="font-semibold mt-4 mb-2">3. Install and run Redis:</p>
+        <pre className="bg-gray-200 dark:bg-gray-600 p-2 rounded">
+          <code>
+            wget http://download.redis.io/releases/redis-6.2.7.tar.gz
+            tar xzf redis-6.2.7.tar.gz
+            cd redis-6.2.7
+            make
+            src/redis-server
+          </code>
+        </pre>
+        
+        <p className="font-semibold mt-4 mb-2">4. Configure Ceph storage:</p>
+        <p>Follow the official Ceph documentation to set up the distributed storage system.</p>
+        
+        <p className="font-semibold mt-4 mb-2">5. Start the application:</p>
+        <pre className="bg-gray-200 dark:bg-gray-600 p-2 rounded">
+          <code>
+            go run main.go
+          </code>
+        </pre>
+      </div>
 
-- **Operating System:** Linux (CentOS 9)
-- **Frontend:**
-    - **Framework:** React.js
-    - **Styling:** CSS, Bootstrap
-- **Backend:**
-    - **Framework:** Gin - A lightweight web framework for building high-performance APIs in Go.
-    - **API Documentation:** Swagger - A tool for documenting and testing APIs.
-- **Programming Language:** Go, JavaScript
-- **Micro Services:**
-    - **File Management:** Handles file upload, download, and management operations.
-    - **Framework:** go-micro - A pluggable microservices framework for Go.
-    - **Communication:** gRPC - A high-performance, open-source RPC framework.
-- **Distributed Storage:**
-    - **Ceph:** A unified, distributed storage system designed for excellent performance, reliability, and scalability.
-    - **AWS S3:** Integrated for additional cloud storage capabilities and global accessibility.
-- **Database:**
-    - **MySQL** - A widely-used relational database management system. Deployed using Docker with the official MySQL 5.7 image. The configuration includes master-slave replication for data redundancy and failover capabilities.
-    - **Redis** - An in-memory key-value store, used for caching and real-time analytics. Deployed using Docker with the official Redis 6.2.7 image.
-- **Message Queue:** RabbitMQ - A robust message broker that facilitates asynchronous communication between distributed components.
-- **Containerization and Orchestration:**
-    - **Docker:** Containers are used to package the application components and their dependencies, ensuring consistency across different environments.
-    - **Kubernetes:** Manages containerized applications in a clustered environment, ensuring high availability, scalability, and fault tolerance.
+      <h2 id="usage" className="text-2xl font-semibold mb-4">📘 Usage</h2>
+      <p className="mb-6">
+        The system can be accessed via a web interface or API, where users can upload, manage, and retrieve files. 
+        The file management interface provides features such as file versioning, access controls, and real-time status updates.
+      </p>
 
-## System Architecture
-![](/usr/local/Distributed_system/cloud_distributed_storage/microservice_interact_archi.png)
+      <h2 id="contributing" className="text-2xl font-semibold mb-4">🤝 Contributing</h2>
+      <p className="mb-6">
+        Contributions to this project are welcome. Please follow the guidelines in the <code>CONTRIBUTING.md</code> file 
+        to submit issues or pull requests.
+      </p>
 
+      <h2 id="license" className="text-2xl font-semibold mb-4">📄 License</h2>
+      <p className="mb-6">
+        This project is licensed under the MIT License. See the <code>LICENSE</code> file for more details.
+      </p>
 
-The system is designed with a microservices architecture, where each component is loosely coupled, enabling independent scaling and development. The architecture leverages containerization and orchestration to manage resources efficiently and ensure seamless integration between services.
-
-### MySQL Setup
-
-- **Version:** MySQL 5.7
-- **Deployment:** Docker container using the official MySQL image.
-- **Configuration:**
-    - Default configuration with master-slave replication enabled.
-    - Configuration files are mounted to the container using Docker volumes, allowing for easy updates and persistence.
-- **Access:**
-    - **Master Instance:** `localhost:3301`
-    - **Slave Instance:** `localhost:3302`
-    - **Container Internal Port:** `3306`
-
-### Redis Setup
-
-- **Version:** Redis 6.2.7
-- **Deployment:** Docker container using the official Redis image.
-- **Configuration:** Default settings.
-- **Access:** `localhost:6379`
-
-### Ceph Storage
-
-Ceph is used to handle distributed file storage, offering high scalability and reliability. It provides seamless integration with other components in the system, ensuring efficient data storage and retrieval.
-- **Access:** 
-- **Ceph Monitor:** `172.20.0.10/16`
-- **Ceph OSD:** `172.20.0.11, 172.20.0.12, 172.20.0.13`
-- **Ceph MGR:** `172.20.0.14:7000`
-- **Ceph RGW:** `172.20.0.15:7480`
-
-### AWS S3 Integration
-**Ceph Configuration:**
-    <li>Ceph can be configured to use its RADOS Gateway (RGW) to provide an S3-compatible API.
-    <li>Configure Ceph RGW to interact with AWS S3 using the S3 API, enabling data redundancy across your Ceph cluster and AWS.
-**Usage:**
-    <li>You can interact with Ceph just as you would with AWS S3, using tools like the AWS CLI or SDKs, by pointing them to your Ceph RGW endpoint.
-
-### RabbitMQ Setup
-**Version:** RabbitMQ 3.9.7
-**Deployment:** Docker container using the official RabbitMQ image.
-  <li>docker run -d --hostname rabbit-server --name rabbit -p 5672:5672 -p 15672:15672 -p 25672:25672 -v /data/rabbitmq:/var/lib/rabbitmq rabbitmq:management<li>
-**Configuration:** Default settings.
-
-## Installation
-
-To set up the system, follow these steps:
-
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/your-repo/distributed-file-system.git
-   cd distributed-file-system
-   ```
-
-2. **Set up Docker containers:**
-    - For MySQL:
-      ```bash
-      docker-compose -f docker-compose-mysql.yml up -d
-      ```
-
-3. **Redis 6.2.7 Installation and Running Instructions:**
-
-   1. Download and Install Redis 6.2.7
-
-       ```bash
-         wget http://download.redis.io/releases/redis-6.2.7.tar.gz
-         tar xzf redis-6.2.7.tar.gz
-         cd redis-6.2.7
-         make
-       ```
-
-   2. Start the Redis server:
-       ```bash
-       src/redis-server
-       redis-server /etc/redis/redis.conf
-       redis-cli
-       ```
-
-4**Configure Ceph storage:**
-   Follow the official Ceph documentation to set up the distributed storage system.
-
-5**Start the application:**
-   ```bash
-   go run main.go
-   ```
-
-## Usage
-
-The system can be accessed via a web interface or API, where users can upload, manage, and retrieve files. The file management interface provides features such as file versioning, access controls, and real-time status updates.
-
-## Contributing
-
-Contributions to this project are welcome. Please follow the guidelines in the `CONTRIBUTING.md` file to submit issues or pull requests.
-
-## License
-
-This project is licensed under the MIT License. See the `LICENSE` file for more details.
-
-## Contact
-````
-songguocheng348@gmail.com
+      <h2 id="contact" className="text-2xl font-semibold mb-4">📧 Contact</h2>
+      <p className="mb-6">
+        For any inquiries, please contact: <a href="mailto:songguocheng348@gmail.com" className="text-blue-500 hover:underline">songguocheng348@gmail.com</a>
+      </p>
+    </div>
+  )
+}
