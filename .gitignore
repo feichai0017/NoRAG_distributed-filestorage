@@ -19,3 +19,4 @@ docker/logs
 
 ### VS Code ###
 .vscode/
+docker/data/
