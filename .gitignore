@@ -13,6 +13,9 @@ Backend/.env
 .idea
 
 .vite
+docker/config
+docker/data
+docker/logs
 
 ### VS Code ###
 .vscode/
