@@ -1,0 +1,1 @@
+written by Elasticsearch v8.8.0 to prevent a downgrade to a version prior to v8.0.0 which would result in data loss

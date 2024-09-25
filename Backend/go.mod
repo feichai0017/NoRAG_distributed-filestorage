@@ -1,6 +1,6 @@
 module cloud_distributed_storage/Backend
 
-go 1.22.6
+go 1.22.5
 
 require (
 	github.com/asim/go-micro/plugins/registry/consul/v3 v3.7.0

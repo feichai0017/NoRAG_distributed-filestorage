@@ -1,0 +1,41 @@
+=============== Sep 24, 2024 (UTC) ===============
+15:36:12.980364 log@legend F·NumFile S·FileSize N·Entry C·BadEntry B·BadBlock Ke·KeyError D·DroppedEntry L·Level Q·SeqNum T·TimeElapsed
+15:36:12.981809 db@open opening
+15:36:12.982055 version@stat F·[] S·0B[] Sc·[]
+15:36:12.983075 db@janitor F·2 G·0
+15:36:12.983096 db@open done T·1.268265ms
+15:50:29.855053 db@close closing
+15:50:29.855091 db@close done T·38.335µs
+=============== Sep 24, 2024 (UTC) ===============
+15:50:46.353574 log@legend F·NumFile S·FileSize N·Entry C·BadEntry B·BadBlock Ke·KeyError D·DroppedEntry L·Level Q·SeqNum T·TimeElapsed
+15:50:46.353710 version@stat F·[] S·0B[] Sc·[]
+15:50:46.353729 db@open opening
+15:50:46.353771 journal@recovery F·1
+15:50:46.353934 journal@recovery recovering @1
+15:50:46.358682 memdb@flush created L0@2 N·1 S·384B "sch..038,v1":"sch..038,v1"
+15:50:46.359021 version@stat F·[1] S·384B[384B] Sc·[0.25]
+15:50:46.361137 db@janitor F·3 G·0
+15:50:46.361163 db@open done T·7.426158ms
+16:00:10.739276 db@close closing
+16:00:10.739324 db@close done T·48.5µs
+=============== Sep 24, 2024 (UTC) ===============
+16:00:16.194493 log@legend F·NumFile S·FileSize N·Entry C·BadEntry B·BadBlock Ke·KeyError D·DroppedEntry L·Level Q·SeqNum T·TimeElapsed
+16:00:16.194683 version@stat F·[1] S·384B[384B] Sc·[0.25]
+16:00:16.194733 db@open opening
+16:00:16.194789 journal@recovery F·1
+16:00:16.194993 journal@recovery recovering @3
+16:00:16.195413 version@stat F·[1] S·384B[384B] Sc·[0.25]
+16:00:16.197071 db@janitor F·3 G·0
+16:00:16.197093 db@open done T·2.351767ms
+16:24:19.914141 db@close closing
+16:24:19.914199 db@close done T·56.99µs
+=============== Sep 25, 2024 (UTC) ===============
+00:47:46.793158 log@legend F·NumFile S·FileSize N·Entry C·BadEntry B·BadBlock Ke·KeyError D·DroppedEntry L·Level Q·SeqNum T·TimeElapsed
+00:47:46.793257 version@stat F·[1] S·384B[384B] Sc·[0.25]
+00:47:46.793284 db@open opening
+00:47:46.793329 journal@recovery F·1
+00:47:46.793431 journal@recovery recovering @5
+00:47:46.794425 memdb@flush created L0@7 N·2 S·408B "sch..038,v3":"sch..038,v4"
+00:47:46.794663 version@stat F·[2] S·792B[792B] Sc·[0.50]
+00:47:46.796172 db@janitor F·4 G·0
+00:47:46.796198 db@open done T·2.908461ms

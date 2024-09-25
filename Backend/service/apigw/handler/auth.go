@@ -1,8 +1,9 @@
 package handler
 
 import (
-	dblayer "cloud_distributed_storage/Backend/database"
+	rPool "cloud_distributed_storage/Backend/cache/redis"
 	"fmt"
+	"github.com/garyburd/redigo/redis"
 	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
@@ -46,21 +47,35 @@ func IsTokenValid(token string) (string, error) {
 		return "", fmt.Errorf("invalid token length")
 	}
 
-	// 验证 token 时效性
+	// 从 Redis 中获取用户名
+	rConn := rPool.RedisPool().Get()
+	defer rConn.Close()
+
+	username, err := redis.String(rConn.Do("GET", fmt.Sprintf("session*%s", token)))
+	if err != nil {
+		if err == redis.ErrNil {
+			return "", fmt.Errorf("token not found or expired")
+		}
+		return "", fmt.Errorf("error querying Redis: %v", err)
+	}
+
+	// 验证 token 时效性 (可选，因为 Redis 已经处理了过期)
 	tokenTimestamp := token[len(token)-8:]
 	var ts int64
-	_, err := fmt.Sscanf(tokenTimestamp, "%x", &ts)
+	_, err = fmt.Sscanf(tokenTimestamp, "%x", &ts)
 	if err != nil {
 		return "", fmt.Errorf("invalid token timestamp")
 	}
 
 	tokenTime := time.Unix(ts, 0)
-	if time.Since(tokenTime) > 2*time.Hour {
+	if time.Since(tokenTime) > 24*time.Hour {
+		// 如果 token 已过期，从 Redis 中删除它
+		_, err = rConn.Do("DEL", fmt.Sprintf("session*%s", token))
+		if err != nil {
+			fmt.Printf("Error deleting expired token from Redis: %v\n", err)
+		}
 		return "", fmt.Errorf("token expired")
 	}
-	username := dblayer.QueryUserByToken(token)
-	if len(username) == 0 {
-		return "", fmt.Errorf("username not found: %v", err)
-	}
+
 	return username, nil
 }

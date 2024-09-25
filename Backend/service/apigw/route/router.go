@@ -17,15 +17,16 @@ func Router() *gin.Engine {
 
 	router.POST("/user/login", handler.SignInHandler)
 
-	router.GET("/user/info", handler.UserInfoHandler)
-
-	router.GET("/user/logout", handler.SignOutHandler)
-
-	router.POST("user/delete", handler.DeleteUserHandler)
-
-	router.POST("/file/query", handler.FileQueryHandler)
-
-	router.POST("/file/update", handler.FileMetaUpdateHandler)
+	// 需要认证的路由
+	auth := router.Group("/")
+	auth.Use(handler.Authorize())
+	{
+		auth.GET("/user/info", handler.UserInfoHandler)
+		auth.GET("/user/logout", handler.SignOutHandler)
+		auth.POST("/user/delete", handler.DeleteUserHandler)
+		auth.POST("/file/query", handler.FileQueryHandler)
+		auth.POST("/file/update", handler.FileMetaUpdateHandler)
+	}
 
 	return router
 }
