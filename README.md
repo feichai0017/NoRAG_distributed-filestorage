@@ -1,137 +1,213 @@
-
-
 # Distributed File System on Cloud
 
+<p align="center">
+  <img src="./Frontend/public/images/logo.png" alt="Project Logo" width="200"/>
+</p>
+
+![Status](https://img.shields.io/badge/status-active-success.svg)
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
+
+A cloud-based distributed file system designed for scalability, reliability, and performance, with advanced storage, retrieval capabilities, and service discovery.
+
+---
+
+## Table of Contents
+- [Overview](#overview)
+- [Tech Stack](#tech-stack)
+- [System Architecture](#system-architecture)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Contributing](#contributing)
+- [License](#license)
+- [Contact](#contact)
+
+---
 ## Overview
 
-This project is a cloud-based distributed file system designed for scalability, reliability, and performance. The system is built using cutting-edge technologies to ensure robust data management and seamless file storage and retrieval processes across distributed environments.
+This project is a cloud-based distributed file system built using cutting-edge technologies to ensure robust data management, seamless file storage and retrieval processes across distributed environments, advanced document processing, search capabilities, and efficient service discovery and management.
+
+---
 
 ## Tech Stack
 
-- **Operating System:** Linux (CentOS 9)
-- **Frontend:**
-    - **Framework:** React.js
-    - **Styling:** CSS, Bootstrap
-- **Backend:**
-    - **Framework:** Gin - A lightweight web framework for building high-performance APIs in Go.
-    - **API Documentation:** Swagger - A tool for documenting and testing APIs.
-- **Programming Language:** Go, JavaScript
-- **Micro Services:**
-    - **File Management:** Handles file upload, download, and management operations.
-    - **Framework:** go-micro - A pluggable microservices framework for Go.
-    - **Communication:** gRPC - A high-performance, open-source RPC framework.
-- **Distributed Storage:**
-    - **Ceph:** A unified, distributed storage system designed for excellent performance, reliability, and scalability.
-    - **AWS S3:** Integrated for additional cloud storage capabilities and global accessibility.
-- **Database:**
-    - **MySQL** - A widely-used relational database management system. Deployed using Docker with the official MySQL 5.7 image. The configuration includes master-slave replication for data redundancy and failover capabilities.
-    - **Redis** - An in-memory key-value store, used for caching and real-time analytics. Deployed using Docker with the official Redis 6.2.7 image.
-- **Message Queue:** RabbitMQ - A robust message broker that facilitates asynchronous communication between distributed components.
-- **Containerization and Orchestration:**
-    - **Docker:** Containers are used to package the application components and their dependencies, ensuring consistency across different environments.
-    - **Kubernetes:** Manages containerized applications in a clustered environment, ensuring high availability, scalability, and fault tolerance.
+### Operating System
+- x86 Linux 
+
+### Frontend
+- **Framework:** React.js
+- **Styling:** CSS, Bootstrap
+
+### Backend
+- **Framework:** Gin (Go web framework)
+- **API Documentation:** Swagger
+
+### Programming Languages
+- Go
+- JavaScript
+- Python
+
+### Microservices
+- **File Management:** Handles file upload, download, and management operations
+- **Framework:** go-micro
+- **Communication:** gRPC
+
+### Service Discovery and Configuration
+- **Consul:** Service registry, discovery, and distributed key-value store
+
+### Distributed Storage
+- **Block Storage:**
+  - Ceph: For frequently modified documents
+  - AWS EBS: Backup for block storage
+- **Object Storage:**
+  - MinIO: Primary object storage for immutable files (e.g., PDFs, images)
+  - AWS S3: Backup for object storage
+
+### Databases
+- **MySQL 5.7:** Deployed using Docker with master-slave replication
+- **Redis 6.2.7:** In-memory key-value store for caching
+
+### Search and Analytics
+- **Elasticsearch:** Full-text search and vector database for document indexing
+
+### Document Processing
+- **Python:** RAG (Retrieval-Augmented Generation) service and document scanning functionality
+
+### Message Queue
+- RabbitMQ
+
+### Containerization and Orchestration
+- Docker
+- Kubernetes
+
+---
 
 ## System Architecture
-![](/usr/local/Distributed_system/cloud_distributed_storage/microservice_interact_archi.png)
 
+![System Architecture](/Architect.png)
 
-The system is designed with a microservices architecture, where each component is loosely coupled, enabling independent scaling and development. The architecture leverages containerization and orchestration to manage resources efficiently and ensure seamless integration between services.
+The system uses a microservices architecture with loosely coupled components, enabling independent scaling and development. Containerization and orchestration manage resources efficiently and ensure seamless integration between services. Consul provides service discovery and configuration management across the distributed system.
+
+### Consul Setup
+- **Version:** Consul 1.11.0
+- **Deployment:** Docker container
+- **UI Access:** `localhost:8500`
+- **DNS Interface:** `localhost:8600`
 
 ### MySQL Setup
-
 - **Version:** MySQL 5.7
-- **Deployment:** Docker container using the official MySQL image.
-- **Configuration:**
-    - Default configuration with master-slave replication enabled.
-    - Configuration files are mounted to the container using Docker volumes, allowing for easy updates and persistence.
+- **Deployment:** Docker container
 - **Access:**
-    - **Master Instance:** `localhost:3301`
-    - **Slave Instance:** `localhost:3302`
-    - **Container Internal Port:** `3306`
+  - Master Instance: `localhost:3301`
+  - Slave Instance: `localhost:3302`
+  - Container Internal Port: `3306`
 
 ### Redis Setup
-
 - **Version:** Redis 6.2.7
-- **Deployment:** Docker container using the official Redis image.
-- **Configuration:** Default settings.
+- **Deployment:** Docker container
 - **Access:** `localhost:6379`
 
-### Ceph Storage
-
-Ceph is used to handle distributed file storage, offering high scalability and reliability. It provides seamless integration with other components in the system, ensuring efficient data storage and retrieval.
-- **Access:** 
+### Ceph Block Storage
 - **Ceph Monitor:** `172.20.0.10/16`
 - **Ceph OSD:** `172.20.0.11, 172.20.0.12, 172.20.0.13`
 - **Ceph MGR:** `172.20.0.14:7000`
-- **Ceph RGW:** `172.20.0.15:7480`
+- **Ceph RBD:** For block storage of frequently modified documents
 
-### AWS S3 Integration
-**Ceph Configuration:**
-    <li>Ceph can be configured to use its RADOS Gateway (RGW) to provide an S3-compatible API.
-    <li>Configure Ceph RGW to interact with AWS S3 using the S3 API, enabling data redundancy across your Ceph cluster and AWS.
-**Usage:**
-    <li>You can interact with Ceph just as you would with AWS S3, using tools like the AWS CLI or SDKs, by pointing them to your Ceph RGW endpoint.
+### MinIO Object Storage
+- **Deployment:** Docker container
+- **Access:** `localhost:9000`
+- **Console:** `localhost:9001`
+
+### AWS Integration
+- **AWS EBS:** Backup for Ceph block storage
+- **AWS S3:** Backup for MinIO object storage
+
+### Elasticsearch Setup
+- **Version:** Elasticsearch 7.14.0
+- **Deployment:** Docker container
+- **Access:** `localhost:9200`
+
+### Python Services
+- **RAG Service:** Retrieval-Augmented Generation for advanced document processing
+- **Document Scanning:** OCR and document analysis capabilities
 
 ### RabbitMQ Setup
-**Version:** RabbitMQ 3.9.7
-**Deployment:** Docker container using the official RabbitMQ image.
-  <li>docker run -d --hostname rabbit-server --name rabbit -p 5672:5672 -p 15672:15672 -p 25672:25672 -v /data/rabbitmq:/var/lib/rabbitmq rabbitmq:management<li>
-**Configuration:** Default settings.
+- **Version:** RabbitMQ 3.9.7
+- **Deployment:** Docker container
+- **Ports:** 5672, 15672, 25672
+
+---
 
 ## Installation
 
-To set up the system, follow these steps:
-
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/your-repo/distributed-file-system.git
+   git clone https://github.com/feichai0017/distributed-file-system.git
    cd distributed-file-system
    ```
 
 2. **Set up Docker containers:**
-    - For MySQL:
-      ```bash
-      docker-compose -f docker-compose-mysql.yml up -d
-      ```
-
-3. **Redis 6.2.7 Installation and Running Instructions:**
-
-   1. Download and Install Redis 6.2.7
-
-       ```bash
-         wget http://download.redis.io/releases/redis-6.2.7.tar.gz
-         tar xzf redis-6.2.7.tar.gz
-         cd redis-6.2.7
-         make
-       ```
-
-   2. Start the Redis server:
-       ```bash
-       src/redis-server
-       redis-server /etc/redis/redis.conf
-       redis-cli
-       ```
-
-4**Configure Ceph storage:**
-   Follow the official Ceph documentation to set up the distributed storage system.
-
-5**Start the application:**
    ```bash
-   go run main.go
+   docker-compose up -d
    ```
+
+3. **Start Consul:**
+   ```bash
+   docker run -d --name=consul -p 8500:8500 -p 8600:8600/udp consul:1.11.0 agent -server -ui -node=server-1 -bootstrap-expect=1 -client=0.0.0.0
+   ```
+
+4. **Configure Ceph block storage:**
+   Follow the official Ceph documentation to set up the block storage system.
+
+5. **Set up MinIO object storage:**
+   ```bash
+   docker run -p 9000:9000 -p 9001:9001 minio/minio server /data --console-address ":9001"
+   ```
+
+6. **Configure AWS services:**
+   Set up AWS EBS and S3 for backup purposes using AWS CLI or SDKs.
+
+7. **Start Elasticsearch:**
+   ```bash
+   docker run -p 9200:9200 -p 9300:9300 -e "discovery.type=single-node" docker.elastic.co/elasticsearch/elasticsearch:7.14.0
+   ```
+
+8. **Set up Python services:**
+   ```bash
+   pip install -r requirements.txt
+   python rag_service.py
+   python document_scanner.py
+   ```
+
+9. **Register services with Consul:**
+   Update your service configurations to register with Consul upon startup.
+
+10. **Start the application:**
+    To start all services, run the following command:
+    ```bash
+    ./service/start-all.sh
+    ```
+
+---
 
 ## Usage
 
-The system can be accessed via a web interface or API, where users can upload, manage, and retrieve files. The file management interface provides features such as file versioning, access controls, and real-time status updates.
+The system can be accessed via a web interface or API. Users can upload, manage, and retrieve files with features such as file versioning, access controls, and real-time status updates. The system provides advanced search capabilities, document processing, and intelligent retrieval using RAG technology. Services are dynamically discovered and managed through Consul, ensuring high availability and scalability.
+
+---
 
 ## Contributing
 
-Contributions to this project are welcome. Please follow the guidelines in the `CONTRIBUTING.md` file to submit issues or pull requests.
+Contributions are welcome. Please follow the guidelines in the `CONTRIBUTING.md` file to submit issues or pull requests.
+
+---
 
 ## License
 
-This project is licensed under the MIT License. See the `LICENSE` file for more details.
+This project is licensed under the MIT License. See the `LICENSE` file for details.
+
+---
 
 ## Contact
-````
-songguocheng348@gmail.com
+
+For inquiries, please contact: [songguocheng348@gmail.com](mailto:songguocheng348@gmail.com)
