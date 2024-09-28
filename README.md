@@ -7,6 +7,13 @@
 ![Status](https://img.shields.io/badge/status-active-success.svg)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
+[![React](https://img.shields.io/badge/React-18.2.0-blue.svg)](https://reactjs.org/)
+[![Go](https://img.shields.io/badge/Go-1.22.6-00ADD8.svg)](https://golang.org)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](http://makeapullrequest.com)
+[![GitHub issues](https://img.shields.io/github/issues/feichai0017/NoRAG_distributed-filestorage.svg)](https://github.com/feichai0017/NoRAG_distributed-filestorage/issues)
+[![GitHub stars](https://img.shields.io/github/stars/feichai0017/NoRAG_distributed-filestorage.svg)](https://github.com/feichai0017/NoRAG_distributed-filestorage/stargazers)
+
+
 
 A cloud-based distributed file system designed for scalability, reliability, and performance, with advanced storage, retrieval capabilities, and service discovery.
 
